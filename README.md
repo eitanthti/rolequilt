@@ -17,7 +17,15 @@ Messages, drafts and task-status edits stay in this browser's localStorage. Fixe
 
 The fictional example is config/demo.example.json; its contract is config/team.schema.json. Role names, instructions, prompts and ownership are configuration data. For local customization, edit the example within the schema and run npm run demo:build. Validation limits sizes, IDs and owners; rendering uses DOM text. The checked-in demo must remain fictional for publication. Never commit private configurations, messages or credentials.
 
-External configuration import and API connection are unavailable pending a future scope decision. Configuration is a local development workflow, not a live agent runtime. A storage namespace is not access control or encryption.
+## Import your team locally
+
+Choose Import team JSON, select a JSON file, review the roster and all configuration fields, then click Apply reviewed team. Cancel leaves the current configuration unchanged. No file is uploaded and no remote API exists. Only fictional examples are checked into this repository; imported values stay in runtime/browser-local storage and never change source files.
+
+Schema-valid teams may contain 1–24 roles and up to 160 tasks. JSON is limited to 64 KiB and 12 levels of structural nesting. Up to 8 configurations can be remembered locally. Team/role names and instruction text can be arbitrary within documented field limits. Unknown fields (including credentials) and prototype keys are rejected. Do not import keys, passwords or sensitive data even in free-text fields: browser storage is not encrypted and text cannot be reliably classified as a secret.
+
+The local team selector returns to remembered configurations. Matching configurations retain their separate histories across reloads; the namespace combines team ID and a configuration fingerprint, so revised instructions start a separate state namespace rather than mixing incompatible histories. Browser storage failure falls back to session-only behavior. Clearing this site's browser data removes remembered configurations and histories. Importing configuration does not start agents or connect a model.
+
+Live API connection and agent execution remain unavailable. Configuration is a local browser workflow, not a live agent runtime. A storage namespace is not access control or encryption.
 
 ## Publication
 

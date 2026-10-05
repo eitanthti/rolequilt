@@ -90,7 +90,7 @@ const RolequiltCore = (() => {
     for(const role of config.roles)state.messages[role.id]=state.messages[role.id].slice(-100);
     const all=()=>config.roles.flatMap(r=>state.messages[r.id].map(m=>({m,role:r.id})));
     let messages=all(),length=messages.reduce((sum,x)=>sum+x.m.text.length,0);
-    while(messages.length>300||length>400000){
+    while(messages.length&&(messages.length>300||length>400000||bytes(JSON.stringify(state))>STATE_BYTES)){
       const oldest=messages.reduce((a,b)=>a.m.time<=b.m.time?a:b);
       const index=state.messages[oldest.role].indexOf(oldest.m);state.messages[oldest.role].splice(index,1);
       length-=oldest.m.text.length;messages=all();
@@ -121,6 +121,21 @@ const RolequiltCore = (() => {
       capHistories(state,config);return {state,recovered:false};
     }catch{return {state,recovered:true};}
   }
-  return Object.freeze({validateConfig,parseConfig,storageKey,seedState,appendLocalMessage,restoreState,STATUS,CONFIG_BYTES,STATE_BYTES});
+  const REGISTRY_KEY='rolequilt:teams:v1';
+  const MAX_TEAMS=8;
+  function createTeamRegistry(raw,demo) {
+    const fallback=validateConfig(demo);let teams=[fallback],selected=storageKey(fallback),pending=null;
+    if(raw){try{if(typeof raw!=='string'||bytes(raw)>600000)throw Error();const saved=JSON.parse(raw);inspect(saved,50000);object(saved,['version','selected','teams']);if(saved.version!==1||!Array.isArray(saved.teams)||!saved.teams.length||saved.teams.length>MAX_TEAMS)throw Error();const candidates=saved.teams.map(validateConfig),keys=candidates.map(storageKey);if(new Set(keys).size!==keys.length||!keys.includes(saved.selected))throw Error();teams=candidates;selected=saved.selected;}catch{/* Corrupt registry never activates unvalidated content. */}}
+    return Object.freeze({
+      list:()=>teams.map(validateConfig),
+      current:()=>validateConfig(teams.find(c=>storageKey(c)===selected)),
+      prepare(text){pending=null;const candidate=parseConfig(text);if(!teams.some(c=>storageKey(c)===storageKey(candidate))&&teams.length>=MAX_TEAMS)throw Error('Local team limit reached (8). Clear site data or use another browser profile.');pending=candidate;return validateConfig(candidate);},
+      cancel(){pending=null;},
+      apply(){if(!pending)throw Error('Choose and review a valid configuration first.');const candidate=validateConfig(pending),next=storageKey(candidate);if(!teams.some(c=>storageKey(c)===next))teams.push(candidate);selected=next;pending=null;return validateConfig(candidate);},
+      select(key){if(!teams.some(c=>storageKey(c)===key))throw Error('Unknown local team.');pending=null;selected=key;return this.current();},
+      serialize:()=>JSON.stringify({version:1,selected,teams})
+    });
+  }
+  return Object.freeze({validateConfig,parseConfig,storageKey,seedState,appendLocalMessage,restoreState,createTeamRegistry,REGISTRY_KEY,MAX_TEAMS,STATUS,CONFIG_BYTES,STATE_BYTES});
 })();
 if(typeof module!=='undefined')module.exports=RolequiltCore;

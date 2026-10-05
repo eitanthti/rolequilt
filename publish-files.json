@@ -15,6 +15,7 @@
   "src/demo-config.js",
   "src/styles.css",
   "tests/core.test.cjs",
+  "tests/import.test.cjs",
   "tests/publish.test.cjs",
   "tests/server.test.cjs"
 ]

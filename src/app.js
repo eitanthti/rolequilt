@@ -11,11 +11,11 @@
     const shapes=['M11 5C5 7 3 25 6 32s15 2 24-5S26 11 20 7 15 4 11 5Z','M10 6C3 9 1 25 8 32s20 3 25-5 0-17-6-21S17 3 10 6Z','M20 3C9 3 3 10 3 20s7 17 18 17 16-9 16-18S29 3 20 3Z','M12 4 30 7 38 23 27 36 10 34 3 19Z','M11 4h18a8 8 0 0 1 8 8v16a9 9 0 0 1-9 9H13A10 10 0 0 1 3 27V14A10 10 0 0 1 11 4Z'];
     const wrap=node('span','avatar');const svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 40 40');svg.setAttribute('aria-hidden','true');svg.append(svgPath(shapes[role.shape],{fill:role.color}),svgPath('m15 15 2 5m8-5 2 5',{stroke:'#252629','stroke-width':'3.3','stroke-linecap':'round'}));wrap.append(svg);return wrap;
   }
-  let config;
-  try{config=RolequiltCore.validateConfig(RolequiltDemo);}catch{
+  let config,registry;
+  try{let raw=null;try{raw=localStorage.getItem(RolequiltCore.REGISTRY_KEY);}catch{}registry=RolequiltCore.createTeamRegistry(raw,RolequiltDemo);config=registry.current();}catch{
     $('#app').replaceChildren(node('div','error-panel','Demo configuration could not be loaded. Restore the fictional example and rebuild it. No connection was attempted.'));return;
   }
-  const core=RolequiltCore,key=core.storageKey(config),STATUS=core.STATUS;
+  const core=RolequiltCore,STATUS=core.STATUS;let key=core.storageKey(config);
   let storageOK=true,loaded;
   try{loaded=core.restoreState(localStorage.getItem(key),config);}catch{storageOK=false;loaded={state:core.seedState(config),recovered:false};}
   let state=loaded.state,statusFilter='all',ownerFilter='all',toastTimer;
@@ -24,10 +24,27 @@
   function save(){try{localStorage.setItem(key,JSON.stringify(state));storageOK=true;}catch{storageOK=false;}storageLabel();}
   function toast(text){clearTimeout(toastTimer);$('#toast').textContent=text;$('#toast').hidden=false;toastTimer=setTimeout(()=>$('#toast').hidden=true,3500);}
   document.querySelectorAll('[data-icon]').forEach(el=>el.replaceChildren(icon(el.dataset.icon)));
-  $('#role-count').textContent=String(config.roles.length).padStart(2,'0');$('#nav-task-count').textContent=config.tasks.length;
-  $('#context-role-count').textContent=config.roles.length;$('#context-task-count').textContent=config.tasks.length;
-  for(const f of ['label','heading','description'])$('#focus-'+f).textContent=config.team.focus[f];$('#team-tagline').textContent=config.team.tagline;
-  for(const r of config.roles){const option=node('option','',r.name);option.value=r.id;$('#owner-filter').append(option);}
+  function renderConfig(){
+    $('#role-count').textContent=String(config.roles.length).padStart(2,'0');$('#nav-task-count').textContent=config.tasks.length;
+    $('#context-role-count').textContent=config.roles.length;$('#context-task-count').textContent=config.tasks.length;
+    for(const f of ['label','heading','description'])$('#focus-'+f).textContent=config.team.focus[f];$('#team-tagline').textContent=config.team.tagline;
+    $('#owner-filter').replaceChildren();const all=node('option','','Everyone');all.value='all';$('#owner-filter').append(all);
+    for(const r of config.roles){const option=node('option','',r.name);option.value=r.id;$('#owner-filter').append(option);}
+    $('#local-team-select').replaceChildren();for(const team of registry.list()){const option=node('option','',team.team.name);option.value=core.storageKey(team);$('#local-team-select').append(option);}$('#local-team-select').value=key;
+  }
+  function activate(next){save();config=next;key=core.storageKey(config);try{loaded=core.restoreState(localStorage.getItem(key),config);}catch{loaded={state:core.seedState(config),recovered:false};storageOK=false;}state=loaded.state;statusFilter='all';ownerFilter='all';renderConfig();render();closeDrawer();}
+  function saveRegistry(){try{localStorage.setItem(core.REGISTRY_KEY,registry.serialize());}catch{storageOK=false;storageLabel();toast('Team is active for this session; browser storage unavailable.');}}
+  $('#local-team-select').onchange=()=>{activate(registry.select($('#local-team-select').value));saveRegistry();};
+  let fileRevision=0;
+  function cancelImport(){fileRevision++;registry.cancel();$('#import-file').value='';$('#import-preview').hidden=true;$('#import-apply').disabled=true;$('#import-error').textContent='';}
+  $('#import-open').onclick=()=>{cancelImport();$('#import-dialog').showModal();};
+  $('#import-file').onchange=async()=>{const revision=++fileRevision;registry.cancel();$('#import-preview').hidden=true;$('#import-apply').disabled=true;$('#import-error').textContent='';const file=$('#import-file').files[0];if(!file)return;
+    try{if(file.size>core.CONFIG_BYTES)throw Error('File exceeds 64 KiB.');const text=await file.text();if(revision!==fileRevision)return;const candidate=registry.prepare(text);$('#import-team-name').textContent=candidate.team.name+' · '+candidate.roles.length+' roles';$('#import-roster').replaceChildren(...candidate.roles.map(r=>node('li','',r.name+' — '+r.label+' · '+r.specialty)));$('#import-fields').textContent=JSON.stringify(candidate,null,2);$('#import-preview').hidden=false;$('#import-apply').disabled=false;}catch(error){if(revision!==fileRevision)return;$('#import-error').textContent=error.message;}
+  };
+  $('#import-cancel').onclick=()=>{cancelImport();$('#import-dialog').close();};
+  $('#import-dialog').addEventListener('close',cancelImport);
+  $('#import-apply').onclick=()=>{try{const next=registry.apply();activate(next);saveRegistry();$('#import-dialog').close();toast('Reviewed team applied locally. No upload or agent execution.');}catch(error){$('#import-error').textContent=error.message;}};
+  renderConfig();
   function renderRoles(){
     const list=$('#agent-list');list.replaceChildren();
     for(const r of config.roles){
@@ -39,12 +56,12 @@
   }
   function messageHeader(role,who,chip,time){const top=node('div','message-top');if(who!=='You')top.append(avatar(role));top.append(node('b','',who),node('span','sample-chip',chip));if(time!==undefined){const t=node('time','',new Date(time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));top.append(t);}return top;}
   function renderSample(role){
-    const fragment=document.createDocumentFragment();fragment.append(node('div','sample-divider','FICTIONAL SAMPLE · ILLUSTRATIVE ONLY'));
-    const user=node('article','message user');user.append(messageHeader(role,'You','Sample'),node('div','message-bubble','How could this '+role.label.toLowerCase()+' role help a fictional team?'));fragment.append(user);
+    const fragment=document.createDocumentFragment();fragment.append(node('div','sample-divider','CONFIGURED SAMPLE · ILLUSTRATIVE ONLY'));
+    const user=node('article','message user');user.append(messageHeader(role,'You','Sample'),node('div','message-bubble','How could this '+role.label.toLowerCase()+' role help this configured team?'));fragment.append(user);
     const article=node('article','message agent'),content=node('div','agent-content'),bubble=node('div','message-bubble');article.append(messageHeader(role,role.name,'Sample'));bubble.append(node('h2','',role.heading),node('p','',role.intro));
     const card=node('div','priority-card'),eye=node('div','card-eyebrow','A POSSIBLE FIRST FOCUS');eye.prepend(icon('spark'));card.append(eye);
     role.focus.forEach((step,i)=>{const row=node('div','priority-step'),copy=node('div');copy.append(node('b','',step.title),node('span','',step.detail));row.append(node('div','step-num',String(i+1).padStart(2,'0')),copy);card.append(row);});
-    bubble.append(card,node('div','message-note','Fictional role description. No model is connected and no work is dispatched.'));const handoff=node('div','handoff-line','Illustrative workflow · no task dispatched');handoff.prepend(icon('handoff'));content.append(bubble,handoff);article.append(content);fragment.append(article);return fragment;
+    bubble.append(card,node('div','message-note','Configured role description. No model is connected and no work is dispatched.'));const handoff=node('div','handoff-line','Illustrative workflow · no task dispatched');handoff.prepend(icon('handoff'));content.append(bubble,handoff);article.append(content);fragment.append(article);return fragment;
   }
   function renderMessage(message,role){const article=node('article','message '+(message.type==='user'?'user':'agent'));article.append(messageHeader(role,message.type==='user'?'You':role.name,message.type==='user'?'Local only':'Fixed preview · no AI',message.time));const body=node('div',message.type==='user'?'':'agent-content');body.append(node('div','message-bubble',message.text));article.append(body);return article;}
   function composer(){const length=$('#message-input').value.length;$('#send-button').disabled=!$('#message-input').value.trim();$('#char-count').textContent=length.toLocaleString()+' / 4,000';}
@@ -67,9 +84,9 @@
   $('#message-input').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing&&e.keyCode!==229){e.preventDefault();$('#composer').requestSubmit();}};
   $('#composer').onsubmit=e=>{e.preventDefault();if(!$('#message-input').value.trim())return;try{core.appendLocalMessage(state,config,state.agent,$('#message-input').value,state.preview);}catch{toast('Use a message between 1 and 4,000 characters.');return;}save();renderRoles();renderChat();$('#message-input').focus();toast(state.preview?'Message saved with a fixed preview. No AI response.':'Message saved locally. No reply generated.');};
   $('#preview-toggle').onchange=()=>{state.preview=$('#preview-toggle').checked;save();};
-  $('#details-open').onclick=()=>{const role=active();$('#details-avatar').replaceChildren(avatar(role));$('#details-title').textContent=role.name;$('#details-subtitle').textContent=role.label;const body=$('#details-body');body.replaceChildren();const tags=node('div','scope-tags');for(const tag of role.tags)tags.append(node('span','',tag));body.append(tags);for(const [heading,text]of [['Accountable for',role.responsibility],['Expected deliverable',role.deliverable],['Handoff',role.handoff]])body.append(node('h3','',heading),node('p','',text));const note=node('div','principle','Fictional workflow role. No live model, running agent or external connection is configured.');note.prepend(icon('unplug'));body.append(note);$('#details-dialog').showModal();};
+  $('#details-open').onclick=()=>{const role=active();$('#details-avatar').replaceChildren(avatar(role));$('#details-title').textContent=role.name;$('#details-subtitle').textContent=role.label;const body=$('#details-body');body.replaceChildren();const tags=node('div','scope-tags');for(const tag of role.tags)tags.append(node('span','',tag));body.append(tags);for(const [heading,text]of [['Accountable for',role.responsibility],['Expected deliverable',role.deliverable],['Handoff',role.handoff]])body.append(node('h3','',heading),node('p','',text));const note=node('div','principle','Configured workflow role. No live model, running agent or external connection is configured.');note.prepend(icon('unplug'));body.append(note);$('#details-dialog').showModal();};
   $('#details-close').onclick=$('#details-done').onclick=()=>$('#details-dialog').close();$('#reset-open').onclick=()=>$('#reset-dialog').showModal();$('#reset-cancel').onclick=()=>$('#reset-dialog').close();
-  $('#reset-confirm').onclick=()=>{state=core.seedState(config);statusFilter='all';ownerFilter='all';$('#owner-filter').value='all';save();$('#reset-dialog').close();render();toast('Fictional demo restored. Only this configuration was reset.');};
+  $('#reset-confirm').onclick=()=>{state=core.seedState(config);statusFilter='all';ownerFilter='all';$('#owner-filter').value='all';save();$('#reset-dialog').close();render();toast('Configured local state restored. Only this configuration was reset.');};
   for(const dialog of document.querySelectorAll('dialog'))dialog.addEventListener('click',e=>{if(e.target===dialog){const rect=dialog.getBoundingClientRect();if(e.clientX<rect.left||e.clientX>rect.right||e.clientY<rect.top||e.clientY>rect.bottom)dialog.close();}});
   const mobile=matchMedia('(max-width:760px)');
   function closeDrawer(){$('#app').classList.remove('drawer-open');$('#drawer-open').setAttribute('aria-expanded','false');$('#main-content').inert=false;$('#sidebar').inert=mobile.matches;}
