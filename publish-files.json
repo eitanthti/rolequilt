@@ -15,6 +15,7 @@
   "src/demo-config.js",
   "src/import-prompt.js",
   "src/styles.css",
+  "tests/bundle.test.cjs",
   "tests/core.test.cjs",
   "tests/import-prompt.test.cjs",
   "tests/import.test.cjs",

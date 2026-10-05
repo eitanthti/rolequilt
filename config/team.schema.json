@@ -240,6 +240,31 @@
               "maxLength": 240,
               "pattern": "[^\\s]"
             }
+          },
+          "skills": {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 16,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 240,
+              "description": "Portable relative path; runtime additionally rejects absolute/traversal/encoded/URL/unsafe names and validates bundle presence.",
+              "pattern": "(^|/)SKILL\\.md$"
+            }
+          },
+          "supportingFiles": {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 16,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 240,
+              "description": "Portable relative path; runtime additionally rejects absolute/traversal/encoded/URL/unsafe names and validates bundle presence."
+            }
           }
         }
       }
@@ -311,5 +336,5 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Rolequilt display configuration",
-  "description": "Display data only. Runtime validation additionally enforces UTF-8 size, unique IDs, references, control characters and dangerous-key limits."
+  "description": "Display data only. Runtime validation additionally enforces UTF-8 size, unique IDs, references, control characters and dangerous-key limits. Optional role skills/supportingFiles reference local bundled text only; legacy JSON without references remains valid."
 }

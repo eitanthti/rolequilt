@@ -11,16 +11,16 @@
     const shapes=['M11 5C5 7 3 25 6 32s15 2 24-5S26 11 20 7 15 4 11 5Z','M10 6C3 9 1 25 8 32s20 3 25-5 0-17-6-21S17 3 10 6Z','M20 3C9 3 3 10 3 20s7 17 18 17 16-9 16-18S29 3 20 3Z','M12 4 30 7 38 23 27 36 10 34 3 19Z','M11 4h18a8 8 0 0 1 8 8v16a9 9 0 0 1-9 9H13A10 10 0 0 1 3 27V14A10 10 0 0 1 11 4Z'];
     const wrap=node('span','avatar');const svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 40 40');svg.setAttribute('aria-hidden','true');svg.append(svgPath(shapes[role.shape],{fill:role.color}),svgPath('m15 15 2 5m8-5 2 5',{stroke:'#252629','stroke-width':'3.3','stroke-linecap':'round'}));wrap.append(svg);return wrap;
   }
-  let config,registry;
-  try{let raw=null;try{raw=localStorage.getItem(RolequiltCore.REGISTRY_KEY);}catch{}registry=RolequiltCore.createTeamRegistry(raw,RolequiltDemo);config=registry.current();}catch{
+  let config,registry,registryStorageOK=true;
+  try{let raw=null;try{raw=localStorage.getItem(RolequiltCore.REGISTRY_KEY);}catch{registryStorageOK=false;}registry=RolequiltCore.createTeamRegistry(raw,RolequiltDemo);config=registry.current();}catch{
     $('#app').replaceChildren(node('div','error-panel','Demo configuration could not be loaded. Restore the fictional example and rebuild it. No connection was attempted.'));return;
   }
-  const core=RolequiltCore,STATUS=core.STATUS;let key=core.storageKey(config);
+  const core=RolequiltCore,STATUS=core.STATUS;let key=registry.currentKey();
   let storageOK=true,loaded;
   try{loaded=core.restoreState(localStorage.getItem(key),config);}catch{storageOK=false;loaded={state:core.seedState(config),recovered:false};}
   let state=loaded.state,statusFilter='all',ownerFilter='all',toastTimer;
   const active=()=>config.roles.find(r=>r.id===state.agent);
-  function storageLabel(){const el=$('#storage-state');el.replaceChildren(icon(storageOK?'check':'info'),node('span','',storageOK?'Saved in this browser':'Session only · storage unavailable'));el.title=storageOK?'Only browser storage is used. No server receives this data. Do not enter secrets.':'Changes remain in memory and may be lost when this page closes.';}
+  function storageLabel(){const persisted=storageOK&&registryStorageOK;const el=$('#storage-state');el.replaceChildren(icon(persisted?'check':'info'),node('span','',persisted?'Saved in this browser':'Session only · storage unavailable'));el.title=persisted?'Only browser storage is used. No server receives this data. Do not enter secrets.':'Changes remain in memory and may be lost when this page closes.';}
   function save(){try{localStorage.setItem(key,JSON.stringify(state));storageOK=true;}catch{storageOK=false;}storageLabel();}
   function toast(text){clearTimeout(toastTimer);$('#toast').textContent=text;$('#toast').hidden=false;toastTimer=setTimeout(()=>$('#toast').hidden=true,3500);}
   document.querySelectorAll('[data-icon]').forEach(el=>el.replaceChildren(icon(el.dataset.icon)));
@@ -30,18 +30,36 @@
     for(const f of ['label','heading','description'])$('#focus-'+f).textContent=config.team.focus[f];$('#team-tagline').textContent=config.team.tagline;
     $('#owner-filter').replaceChildren();const all=node('option','','Everyone');all.value='all';$('#owner-filter').append(all);
     for(const r of config.roles){const option=node('option','',r.name);option.value=r.id;$('#owner-filter').append(option);}
-    $('#local-team-select').replaceChildren();for(const team of registry.list()){const option=node('option','',team.team.name);option.value=core.storageKey(team);$('#local-team-select').append(option);}$('#local-team-select').value=key;
+    $('#local-team-select').replaceChildren();for(const entry of registry.listEntries()){const option=node('option','',entry.config.team.name);option.value=entry.key;$('#local-team-select').append(option);}$('#local-team-select').value=key;
   }
-  function activate(next){save();config=next;key=core.storageKey(config);try{loaded=core.restoreState(localStorage.getItem(key),config);}catch{loaded={state:core.seedState(config),recovered:false};storageOK=false;}state=loaded.state;statusFilter='all';ownerFilter='all';renderConfig();render();closeDrawer();}
-  function saveRegistry(){try{localStorage.setItem(core.REGISTRY_KEY,registry.serialize());}catch{storageOK=false;storageLabel();toast('Team is active for this session; browser storage unavailable.');}}
+  function activate(next){save();config=next;key=registry.currentKey();try{loaded=core.restoreState(localStorage.getItem(key),config);}catch{loaded={state:core.seedState(config),recovered:false};storageOK=false;}state=loaded.state;statusFilter='all';ownerFilter='all';renderConfig();render();closeDrawer();}
+  function saveRegistry(){try{localStorage.setItem(core.REGISTRY_KEY,registry.serialize());registryStorageOK=true;storageLabel();}catch{registryStorageOK=false;storageLabel();toast('Team is active for this session; browser storage unavailable.');}}
   $('#local-team-select').onchange=()=>{activate(registry.select($('#local-team-select').value));saveRegistry();};
   $('#prepare-prompt').value=RolequiltImportPrompt;
   $('#prepare-copy').onclick=async()=>{try{if(!navigator.clipboard?.writeText)throw Error('Clipboard unavailable');await navigator.clipboard.writeText(RolequiltImportPrompt);$('#prepare-copy-status').textContent='Preparation prompt copied.';}catch{$('#prepare-prompt').focus();$('#prepare-prompt').select();$('#prepare-copy-status').textContent='Automatic copy unavailable. Prompt selected: press your system Copy shortcut, or select and copy the text manually.';}};
   let fileRevision=0;
-  function cancelImport(){fileRevision++;registry.cancel();$('#import-file').value='';$('#import-preview').hidden=true;$('#import-apply').disabled=true;$('#import-error').textContent='';}
+  function cancelImport(){fileRevision++;registry.cancel();$('#import-file').value='';$('#import-folder').value='';$('#import-bundle-summary').replaceChildren();$('#import-preview').hidden=true;$('#import-apply').disabled=true;$('#import-error').textContent='';}
   $('#import-open').onclick=()=>{cancelImport();$('#import-dialog').showModal();};
-  $('#import-file').onchange=async()=>{const revision=++fileRevision;registry.cancel();$('#import-preview').hidden=true;$('#import-apply').disabled=true;$('#import-error').textContent='';const file=$('#import-file').files[0];if(!file)return;
-    try{if(file.size>core.CONFIG_BYTES)throw Error('File exceeds 64 KiB.');const text=await file.text();if(revision!==fileRevision)return;const candidate=registry.prepare(text);$('#import-team-name').textContent=candidate.team.name+' · '+candidate.roles.length+' roles';$('#import-roster').replaceChildren(...candidate.roles.map(r=>node('li','',r.name+' — '+r.label+' · '+r.specialty)));$('#import-fields').textContent=JSON.stringify(candidate,null,2);$('#import-preview').hidden=false;$('#import-apply').disabled=false;}catch(error){if(revision!==fileRevision)return;$('#import-error').textContent=error.message;}
+  function clearPending(){registry.cancel();$('#import-preview').hidden=true;$('#import-apply').disabled=true;$('#import-error').textContent='';$('#import-bundle-summary').replaceChildren();}
+  function previewImport(candidate,bundle=null){
+    $('#import-team-name').textContent=candidate.team.name+' · '+candidate.roles.length+' roles';$('#import-roster').replaceChildren(...candidate.roles.map(r=>node('li','',r.name+' — '+r.label+' · '+r.specialty)));$('#import-fields').textContent=JSON.stringify(candidate,null,2);
+    const summary=$('#import-bundle-summary');summary.replaceChildren();
+    if(bundle){summary.append(node('p','',bundle.files.length+' files · '+bundle.totalBytes.toLocaleString()+' bytes · imported text only; no capabilities activated.'));
+      const mapping=node('ul');for(const ref of bundle.mapping)mapping.append(node('li','',ref.roleName+' → '+ref.path+' · '+ref.kind+' · '+(bundle.missing.includes(ref.path)?'MISSING/EMPTY':'present')));summary.append(mapping);
+      for(const file of bundle.files){const details=node('details'),title=node('summary','',file.path+' · '+new TextEncoder().encode(file.text).length+' bytes'),text=node('pre','import-text',file.text);details.append(title,text);summary.append(details);}
+      if(bundle.missing.length)$('#import-error').textContent='Missing or empty required files: '+bundle.missing.join(', ');
+    }
+    $('#import-preview').hidden=false;$('#import-apply').disabled=Boolean(bundle?.missing.length);
+  }
+  $('#import-file').onchange=async()=>{const revision=++fileRevision;clearPending();$('#import-folder').value='';const file=$('#import-file').files[0];if(!file)return;
+    try{if(file.size>core.CONFIG_BYTES)throw Error('File exceeds 64 KiB.');const text=new TextDecoder('utf-8',{fatal:true}).decode(await file.arrayBuffer());if(revision!==fileRevision)return;previewImport(registry.prepare(text));}catch(error){if(revision!==fileRevision)return;$('#import-error').textContent=error instanceof TypeError?'File must be valid UTF-8 text.':error.message;}
+  };
+  $('#import-folder').onchange=async()=>{const revision=++fileRevision;clearPending();$('#import-file').value='';const files=[...$('#import-folder').files];if(!files.length)return;
+    try{if(files.length>core.BUNDLE_FILES)throw Error('Folder exceeds 64 files.');let total=0,root=null;const entries=[];
+      for(const file of files){const parts=(file.webkitRelativePath||'').split('/');if(parts.length<2)throw Error('Use folder selection to preserve relative file paths.');if(root===null)root=parts[0];if(parts[0]!==root)throw Error('Choose one folder root.');core.portablePath(root+'/notes.txt');const path=parts.slice(1).join('/');core.portablePath(path);const limit=path==='team-config.json'?core.CONFIG_BYTES:core.FILE_BYTES;if(file.size>limit)throw Error('A selected file exceeds its size limit.');total+=file.size;if(total>core.BUNDLE_BYTES)throw Error('Folder exceeds 1 MiB.');entries.push({path,file});}
+      const decoded=[];for(const entry of entries){const text=new TextDecoder('utf-8',{fatal:true}).decode(await entry.file.arrayBuffer());if(revision!==fileRevision)return;decoded.push({path:entry.path,text});}
+      const bundle=registry.prepareBundle(decoded);previewImport(bundle.config,bundle);
+    }catch(error){if(revision!==fileRevision)return;$('#import-error').textContent=error instanceof TypeError?'Files must be valid UTF-8 text.':error.message;}
   };
   $('#import-cancel').onclick=()=>{cancelImport();$('#import-dialog').close();};
   $('#import-dialog').addEventListener('close',cancelImport);
@@ -86,7 +104,7 @@
   $('#message-input').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing&&e.keyCode!==229){e.preventDefault();$('#composer').requestSubmit();}};
   $('#composer').onsubmit=e=>{e.preventDefault();if(!$('#message-input').value.trim())return;try{core.appendLocalMessage(state,config,state.agent,$('#message-input').value,state.preview);}catch{toast('Use a message between 1 and 4,000 characters.');return;}save();renderRoles();renderChat();$('#message-input').focus();toast(state.preview?'Message saved with a fixed preview. No AI response.':'Message saved locally. No reply generated.');};
   $('#preview-toggle').onchange=()=>{state.preview=$('#preview-toggle').checked;save();};
-  $('#details-open').onclick=()=>{const role=active();$('#details-avatar').replaceChildren(avatar(role));$('#details-title').textContent=role.name;$('#details-subtitle').textContent=role.label;const body=$('#details-body');body.replaceChildren();const tags=node('div','scope-tags');for(const tag of role.tags)tags.append(node('span','',tag));body.append(tags);for(const [heading,text]of [['Accountable for',role.responsibility],['Expected deliverable',role.deliverable],['Handoff',role.handoff]])body.append(node('h3','',heading),node('p','',text));const note=node('div','principle','Configured workflow role. No live model, running agent or external connection is configured.');note.prepend(icon('unplug'));body.append(note);$('#details-dialog').showModal();};
+  $('#details-open').onclick=()=>{const role=active();$('#details-avatar').replaceChildren(avatar(role));$('#details-title').textContent=role.name;$('#details-subtitle').textContent=role.label;const body=$('#details-body');body.replaceChildren();const tags=node('div','scope-tags');for(const tag of role.tags)tags.append(node('span','',tag));body.append(tags);for(const [heading,text]of [['Accountable for',role.responsibility],['Expected deliverable',role.deliverable],['Handoff',role.handoff]])body.append(node('h3','',heading),node('p','',text));const imported=new Map(registry.currentFiles().map(f=>[f.path,f.text]));for(const ref of core.references(config).filter(r=>r.roleId===role.id)){const section=node('details'),heading=node('summary','',ref.kind+' · '+ref.path+' · text only, not activated'),text=node('pre','import-text',imported.get(ref.path)||'Not imported');section.append(heading,text);body.append(section);}const note=node('div','principle','Configured workflow role. No live model, running agent or external connection is configured.');note.prepend(icon('unplug'));body.append(note);$('#details-dialog').showModal();};
   $('#details-close').onclick=$('#details-done').onclick=()=>$('#details-dialog').close();$('#reset-open').onclick=()=>$('#reset-dialog').showModal();$('#reset-cancel').onclick=()=>$('#reset-dialog').close();
   $('#reset-confirm').onclick=()=>{state=core.seedState(config);statusFilter='all';ownerFilter='all';$('#owner-filter').value='all';save();$('#reset-dialog').close();render();toast('Configured local state restored. Only this configuration was reset.');};
   for(const dialog of document.querySelectorAll('dialog'))dialog.addEventListener('click',e=>{if(e.target===dialog){const rect=dialog.getBoundingClientRect();if(e.clientX<rect.left||e.clientX>rect.right||e.clientY<rect.top||e.clientY>rect.bottom)dialog.close();}});
