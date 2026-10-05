@@ -9,7 +9,7 @@ npm test
 npm start
 ```
 
-Open the loopback address printed by the server. To select another port, set ROLEQUILT_PORT. The server exposes only the six demo assets; it has no backend API or write endpoints.
+Open the loopback address printed by the server. To select another port, set ROLEQUILT_PORT. The server exposes only the seven demo assets; it has no backend API or write endpoints.
 
 Messages, drafts and task-status edits stay in this browser's localStorage. Fixed preview replies can be disabled and do not analyze messages or run agents. No AI model, background automation, external services or real team is connected. Do not enter sensitive data. Reset affects only the current configuration's local demo state.
 
@@ -19,7 +19,9 @@ The fictional example is config/demo.example.json; its contract is config/team.s
 
 ## Import your team locally
 
-Choose Import team JSON, select a JSON file, review the roster and all configuration fields, then click Apply reviewed team. Cancel leaves the current configuration unchanged. No file is uploaded and no remote API exists. Only fictional examples are checked into this repository; imported values stay in runtime/browser-local storage and never change source files.
+Choose Import team JSON. The Prepare your team for import section provides a selectable, copyable prompt for your existing assistant. It requests an inventory of authorized team files, missing answers, and one team-config.json, excluding secrets and automatic chat exports. Supporting documents can be listed separately but are not uploaded or parsed. Copy reports success or selects the text with a manual-copy fallback.
+
+Select a JSON file, review the roster and all configuration fields, then click Apply reviewed team. Cancel leaves the current configuration unchanged. No file is uploaded and no remote API exists. Only fictional examples are checked into this repository; imported values stay in runtime/browser-local storage and never change source files.
 
 Schema-valid teams may contain 1–24 roles and up to 160 tasks. JSON is limited to 64 KiB and 12 levels of structural nesting. Up to 8 configurations can be remembered locally. Team/role names and instruction text can be arbitrary within documented field limits. Unknown fields (including credentials) and prototype keys are rejected. Do not import keys, passwords or sensitive data even in free-text fields: browser storage is not encrypted and text cannot be reliably classified as a secret.
 

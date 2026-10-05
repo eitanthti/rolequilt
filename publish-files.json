@@ -13,8 +13,10 @@
   "src/app.js",
   "src/core.js",
   "src/demo-config.js",
+  "src/import-prompt.js",
   "src/styles.css",
   "tests/core.test.cjs",
+  "tests/import-prompt.test.cjs",
   "tests/import.test.cjs",
   "tests/publish.test.cjs",
   "tests/server.test.cjs"

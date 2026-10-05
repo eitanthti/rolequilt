@@ -35,6 +35,8 @@
   function activate(next){save();config=next;key=core.storageKey(config);try{loaded=core.restoreState(localStorage.getItem(key),config);}catch{loaded={state:core.seedState(config),recovered:false};storageOK=false;}state=loaded.state;statusFilter='all';ownerFilter='all';renderConfig();render();closeDrawer();}
   function saveRegistry(){try{localStorage.setItem(core.REGISTRY_KEY,registry.serialize());}catch{storageOK=false;storageLabel();toast('Team is active for this session; browser storage unavailable.');}}
   $('#local-team-select').onchange=()=>{activate(registry.select($('#local-team-select').value));saveRegistry();};
+  $('#prepare-prompt').value=RolequiltImportPrompt;
+  $('#prepare-copy').onclick=async()=>{try{if(!navigator.clipboard?.writeText)throw Error('Clipboard unavailable');await navigator.clipboard.writeText(RolequiltImportPrompt);$('#prepare-copy-status').textContent='Preparation prompt copied.';}catch{$('#prepare-prompt').focus();$('#prepare-prompt').select();$('#prepare-copy-status').textContent='Automatic copy unavailable. Prompt selected: press your system Copy shortcut, or select and copy the text manually.';}};
   let fileRevision=0;
   function cancelImport(){fileRevision++;registry.cancel();$('#import-file').value='';$('#import-preview').hidden=true;$('#import-apply').disabled=true;$('#import-error').textContent='';}
   $('#import-open').onclick=()=>{cancelImport();$('#import-dialog').showModal();};
