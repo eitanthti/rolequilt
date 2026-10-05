@@ -1,0 +1,14 @@
+/* Stdio JSON-RPC transport. Construction requires an injected child process. */
+'use strict';
+const {EventEmitter}=require('node:events');
+class Transport extends EventEmitter{
+ constructor(child,{timeout=15000,maxBytes=1048576}={}){super();this.child=child;this.timeout=timeout;this.maxBytes=maxBytes;this.next=1;this.pending=new Map();this.closed=false;this.buffer='';child.stdout.setEncoding('utf8');child.stdout.on('data',s=>this.read(s));child.on('error',()=>this.close('Runtime process error'));child.on('exit',()=>this.close('Runtime exited'));child.stdin.on('error',()=>this.close('Runtime input failed'));child.stderr.on('data',()=>{});}
+ read(s){if(this.closed)return;this.buffer+=s;if(Buffer.byteLength(this.buffer)>this.maxBytes)return this.close('Runtime frame too large');let end;while((end=this.buffer.indexOf('\n'))>=0){const line=this.buffer.slice(0,end);this.buffer=this.buffer.slice(end+1);if(!line.trim())continue;let message;try{message=JSON.parse(line);}catch{return this.close('Malformed runtime frame');}if(!message||typeof message!=='object'||Array.isArray(message))return this.close('Invalid runtime frame');if(typeof message.method==='string'){this.emit(message.id!==undefined?'request':'notification',message);continue;}const pending=this.pending.get(message.id);if(!pending)continue;this.pending.delete(message.id);clearTimeout(pending.timer);if(message.error)pending.reject(Error('Runtime request failed'));else if(Object.hasOwn(message,'result'))pending.resolve(message.result);else{pending.reject(Error('Invalid runtime response'));this.close('Invalid runtime response');}}}
+ write(message){if(this.closed)throw Error('Runtime disconnected');const frame=JSON.stringify(message)+'\n';if(Buffer.byteLength(frame)>this.maxBytes)throw Error('Request too large');this.child.stdin.write(frame);}
+ call(method,params){if(this.closed)return Promise.reject(Error('Runtime disconnected'));if(this.pending.size>=32)return Promise.reject(Error('Request queue full'));const id=this.next++;return new Promise((resolve,reject)=>{const timer=setTimeout(()=>this.close('Runtime request timed out'),this.timeout);this.pending.set(id,{resolve,reject,timer});try{this.write({id,method,params});}catch(error){this.pending.delete(id);clearTimeout(timer);reject(error);}});}
+ notify(method,params){this.write({method,params});}
+ respond(id,result){this.write({id,result});}
+ reject(id){this.write({id,error:{code:-32601,message:'Unsupported request'}});}
+ close(reason='Disconnected'){if(this.closed)return;this.closed=true;for(const p of this.pending.values()){clearTimeout(p.timer);p.reject(Error(reason));}this.pending.clear();this.buffer='';try{this.child.stdin.end();this.child.kill('SIGTERM');}catch{}this.emit('closed',reason);this.killTimer=setTimeout(()=>{try{this.child.kill('SIGKILL');}catch{}},1000);this.killTimer.unref();}
+}
+module.exports={Transport};

@@ -28,5 +28,12 @@
   "tests/provider-form.test.cjs",
   "bridge/guards.cjs",
   "tests/bridge.test.cjs",
-  "BRIDGE-PLAN.md"
+  "BRIDGE-PLAN.md",
+  "bridge/transport.cjs",
+  "bridge/engine.cjs",
+  "bridge/server.cjs",
+  "bridge/process.cjs",
+  "bridge/ui.html",
+  "bridge/ui.js",
+  "tests/bridge-runtime.test.cjs"
 ]

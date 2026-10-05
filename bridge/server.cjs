@@ -1,0 +1,24 @@
+/* Explicitly constructed loopback server; not wired to npm start. */
+'use strict';
+const http=require('node:http'),fs=require('node:fs'),path=require('node:path');const {createGuard}=require('./guards.cjs');
+function createBridgeServer({engine,port,roles}){
+ const guard=createGuard(port);let heartbeat=null,events=[],revision=0;
+ for(const type of ['state','delta','approval','completed'])engine.on(type,data=>{events.push({revision:++revision,type,data});if(events.length>256||Buffer.byteLength(JSON.stringify(events))>1048576){events=[];engine.disconnect('Event buffer overflow');}});
+ const server=http.createServer(async(req,res)=>{
+  const headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; script-src 'self'; connect-src 'self'; style-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"};
+  const reply=(status,value)=>{res.writeHead(status,{...headers,'Content-Type':'application/json; charset=utf-8'});res.end(JSON.stringify(value));};
+  if(req.headers.host!=='127.0.0.1:'+port)return reply(403,{error:'Host rejected'});
+  if(req.method==='GET'&&['/','/ui.js'].includes(req.url)){const file=path.join(__dirname,req.url==='/'?'ui.html':'ui.js');res.writeHead(200,{...headers,'Content-Type':req.url==='/'?'text/html; charset=utf-8':'text/javascript; charset=utf-8'});return res.end(fs.readFileSync(file));}
+  if(req.method!=='POST'||!['/session','/action'].includes(req.url))return reply(404,{error:'Not found'});
+  if(req.headers['content-type']!=='application/json')return reply(415,{error:'JSON required'});
+  try{if(req.url==='/action')guard.check(req.headers);else if(req.headers.origin!=='http://127.0.0.1:'+port||req.headers['sec-fetch-site']!=='same-origin')throw Error();}catch{return reply(403,{error:'Session rejected'});}
+  let bytes=0,body='';try{for await(const chunk of req){bytes+=chunk.length;if(bytes>65536){reply(413,{error:'Request too large'});req.destroy();return;}body+=chunk.toString('utf8');}const data=JSON.parse(body);if(!data||typeof data!=='object'||Array.isArray(data))throw Error();
+   if(req.url==='/session'){const session=guard.pair(req.headers);return reply(200,{session,roles:roles.map(r=>({id:r.id,name:r.name}))});}
+   clearTimeout(heartbeat);heartbeat=setTimeout(()=>{guard.close();engine.disconnect('Browser heartbeat lost');},15000);heartbeat.unref();
+   if(data.action==='enable')await engine.enable();else if(data.action==='start')await engine.start(data.roleId,data.text,data.modelId);else if(data.action==='approve')await engine.approve(data.id,data.decision);else if(data.action==='cancel')await engine.cancel();else if(data.action==='disconnect'){engine.disconnect();guard.close();}else if(data.action!=='state')return reply(400,{error:'Unknown action'});
+   const after=Number.isInteger(data.after)?data.after:0;reply(200,{...engine.snapshot(),events:events.filter(e=>e.revision>after),revision});
+  }catch{reply(400,{error:'Action failed; review disconnected/runtime state',status:engine.status});}
+ });
+ server.on('close',()=>{clearTimeout(heartbeat);guard.close();engine.disconnect('Bridge closed');});const listen=server.listen.bind(server);server.listen=callback=>listen(port,'127.0.0.1',callback);return server;
+}
+module.exports={createBridgeServer};
