@@ -25,5 +25,8 @@
   "tests/publish.test.cjs",
   "tests/server.test.cjs",
   "src/provider-settings.js",
-  "tests/provider-form.test.cjs"
+  "tests/provider-form.test.cjs",
+  "bridge/guards.cjs",
+  "tests/bridge.test.cjs",
+  "BRIDGE-PLAN.md"
 ]
