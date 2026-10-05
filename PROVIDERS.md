@@ -1,45 +1,14 @@
-# Official provider setup references
+# Local subscription runtime choices
 
-Research checked October 5, 2026; source links supplied by the coordinating research task. Account access/model availability not tested. These are setup-only references, not implemented connections.
+Design requirement: use the user's own local subscription-backed runtime, with no API-key onboarding, separate API billing recommendation or silent paid fallback. Rolequilt is still disconnected; no account/model check or bridge is implemented.
 
-## OpenAI / GPT
+| Route | Current app status |
+|---|---|
+| Official local Codex signed in through its own ChatGPT login | First candidate; inert preference only; eligibility and specific access approval required |
+| Official local Claude Code | Unavailable pending verified supported integration and consent; installation/desktop login is insufficient |
+| Gemini local subscription | Unavailable; no verified route established for this app |
+| Grok local subscription | Unavailable; another integration's OAuth support does not establish a Rolequilt route |
 
-API access uses a Platform key and API billing separate from ChatGPT subscriptions. Eligible local/open-source integrations may support Sign in with ChatGPT plan usage; paid/remote apps require approval. Neither flow is implemented here, and no past chats are imported.
+[Official Codex authentication guidance](https://developers.openai.com/codex/auth) describes vendor-managed login. [Claude login restrictions](https://support.claude.com/en/articles/13189465-log-in-to-your-claude-account) must be respected; do not borrow tokens or impersonate clients. These links are static guidance, not connection features. Account eligibility, subscription limits and model availability remain unverified by this UI.
 
-- [Provider console/setup](https://platform.openai.com/api-keys)
-- [Authentication](https://developers.openai.com/api/reference/overview)
-- [Model catalog](https://developers.openai.com/api/reference/resources/models/methods/list)
-- [Billing](https://platform.openai.com/account/billing/overview)
-- [Eligible Sign in with ChatGPT integrations](https://developers.openai.com/siwc/token-sharing-open-source)
-
-## Anthropic / Claude
-
-Use Claude API/Console access with API billing separate from consumer subscriptions. Third-party tools use API authentication; do not borrow Claude Code subscription tokens. Account access and model availability must be checked in the console.
-
-- [Provider console/setup](https://platform.claude.com/settings/keys)
-- [Authentication](https://platform.claude.com/docs/en/manage-claude/authentication)
-- [Model catalog](https://platform.claude.com/docs/en/api/models/list)
-- [Billing](https://support.claude.com/en/articles/9876003-i-have-a-paid-claude-subscription-pro-max-team-or-enterprise-plans-why-do-i-have-to-pay-separately-to-use-the-claude-api-and-console)
-- [Subscription token restrictions](https://support.claude.com/en/articles/13189465-log-in-to-your-claude-account)
-
-## Google / Gemini
-
-Use AI Studio to select/create/import a Cloud project and prepare an API key; review project quotas and Cloud Billing. A Google AI subscription is not automatic unlimited API allowance; developer credits may be separate. Project OAuth exists, but this app implements neither OAuth nor API authentication.
-
-- [Provider console/setup](https://ai.google.dev/gemini-api/docs/api-key)
-- [Authentication](https://ai.google.dev/gemini-api/docs/oauth?hl=en)
-- [Model catalog](https://ai.google.dev/api/models)
-- [Billing](https://ai.google.dev/gemini-api/docs/billing/)
-- [AI Studio project/key setup](https://ai.google.dev/gemini-api/docs/api-key)
-
-## xAI / Grok
-
-Use the xAI console to prepare a team API key and review API credits/billing. Selected integrations support subscription OAuth (for example Kilo); a generally supported Rolequilt OAuth flow has not been established. No account connection is implemented here.
-
-- [Provider console/setup](https://console.x.ai/home)
-- [Authentication](https://docs.x.ai/developers/quickstart)
-- [Model catalog](https://docs.x.ai/developers/rest-api-reference/inference/models)
-- [Billing](https://docs.x.ai/console/billing)
-- [Selected subscription OAuth integration](https://x.ai/news/grok-kilocode)
-
-No API-key/token fields exist in this UI. All preferences remain unverified and disconnected. Do not import credential values into configurations or skill text. A future secure runtime needs provider authentication, model-catalog queries, access controls and spend limits; no such backend is included. No license decision has been made.
+Keep credentials in the official runtime's own protected authentication store. This app has no credential input and must never extract/copy login tokens. A future approved local bridge must refuse API fallback and unavailable providers, and distinguish plan usage from API billing. It must not promise zero file/tool access without an enforceable vendor/runtime boundary. See LOCAL-RUNTIME-DESIGN.md. No license selected.

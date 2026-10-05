@@ -126,9 +126,10 @@ const RolequiltCore = (() => {
       capHistories(state,config);return {state,recovered:false};
     }catch{return {state,recovered:true};}
   }
-  const PROVIDERS=Object.freeze({none:'Not chosen',openai:'OpenAI / GPT',anthropic:'Anthropic / Claude',google:'Google / Gemini',xai:'xAI / Grok'});
+  const PROVIDERS=Object.freeze({none:'Not chosen',openai:'Local Codex / own ChatGPT plan (candidate)',anthropic:'Local Claude Code (unavailable here)',google:'Gemini local subscription (unavailable)',xai:'Grok local subscription (unavailable)'});
+  const LOCAL_RUNTIME_CANDIDATES=Object.freeze(['none','openai']);
   function validateModelPreference(value){object(value,['provider','modelId']);if(!Object.hasOwn(PROVIDERS,value.provider)||typeof value.modelId!=='string'||value.modelId.length>120||(value.modelId&&!/^[A-Za-z0-9][A-Za-z0-9._/-]{0,119}$/.test(value.modelId))||unsafeContent(value.modelId)||(value.provider==='none'&&value.modelId))fail('provider/model preference');return {provider:value.provider,modelId:value.modelId};}
-  function setModelPreference(state,config,roleId,value){if(!config.roles.some(r=>r.id===roleId))fail('unknown role');const clean=validateModelPreference(value);state.modelPreferences[roleId]=clean;return {...clean};}
+  function setModelPreference(state,config,roleId,value){if(!LOCAL_RUNTIME_CANDIDATES.includes(value?.provider))fail('local subscription route not verified for this app');if(!config.roles.some(r=>r.id===roleId))fail('unknown role');const clean=validateModelPreference(value);state.modelPreferences[roleId]=clean;return {...clean};}
   const REGISTRY_KEY='rolequilt:teams:v1';
   const MAX_TEAMS=8,BUNDLE_FILES=64,FILE_BYTES=131072,BUNDLE_BYTES=1048576,REGISTRY_BYTES=4194304;
   function portablePath(value){
@@ -176,6 +177,6 @@ const RolequiltCore = (() => {
       serialize:()=>JSON.stringify({version:2,selected,entries})
     });
   }
-  return Object.freeze({validateConfig,parseConfig,storageKey,seedState,appendLocalMessage,restoreState,createTeamRegistry,validateBundle,portablePath,references,bundleKey,REGISTRY_KEY,MAX_TEAMS,CONFIG_BYTES,STATE_BYTES,BUNDLE_FILES,FILE_BYTES,BUNDLE_BYTES,REGISTRY_BYTES,STATUS,PROVIDERS,validateModelPreference,setModelPreference});
+  return Object.freeze({validateConfig,parseConfig,storageKey,seedState,appendLocalMessage,restoreState,createTeamRegistry,validateBundle,portablePath,references,bundleKey,REGISTRY_KEY,MAX_TEAMS,CONFIG_BYTES,STATE_BYTES,BUNDLE_FILES,FILE_BYTES,BUNDLE_BYTES,REGISTRY_BYTES,STATUS,PROVIDERS,LOCAL_RUNTIME_CANDIDATES,validateModelPreference,setModelPreference});
 })();
 if(typeof module!=='undefined')module.exports=RolequiltCore;
