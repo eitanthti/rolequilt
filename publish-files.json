@@ -1,4 +1,5 @@
 [
+  "PROVIDERS.md",
   "README.md",
   "SECURITY.md",
   "TEST-REPORT.md",
@@ -19,6 +20,7 @@
   "tests/core.test.cjs",
   "tests/import-prompt.test.cjs",
   "tests/import.test.cjs",
+  "tests/providers.test.cjs",
   "tests/publish.test.cjs",
   "tests/server.test.cjs"
 ]

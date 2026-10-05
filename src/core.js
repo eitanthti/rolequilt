@@ -50,7 +50,7 @@ const RolequiltCore = (() => {
     object(value.team.focus,['label','heading','description']);string(value.team.focus.label,80);string(value.team.focus.heading,160);string(value.team.focus.description,1000);
     const roleIds=new Set();
     list(value.roles,1,24,role=>{
-      object(role,['id','name','label','specialty','color','shape','summary','heading','intro','focus','responsibility','handoff','deliverable','tags','prompts'],['skills','supportingFiles']);
+      object(role,['id','name','label','specialty','color','shape','summary','heading','intro','focus','responsibility','handoff','deliverable','tags','prompts'],['skills','supportingFiles','modelPreference']);
       id(role.id);if(roleIds.has(role.id))fail('duplicate role');roleIds.add(role.id);
       for(const key of ['name','label'])string(role[key],80);
       for(const key of ['specialty','summary','heading'])string(role[key],160);
@@ -61,6 +61,7 @@ const RolequiltCore = (() => {
       list(role.tags,0,5,item=>string(item,40));list(role.prompts,0,4,item=>string(item,240));
       for(const field of ['skills','supportingFiles'])if(role[field]!==undefined){list(role[field],0,16,portablePath);if(new Set(role[field].map(x=>x.toLowerCase())).size!==role[field].length)fail('duplicate file reference');}
       if(role.skills?.some(x=>!/(^|\/)SKILL\.md$/.test(x)))fail('skills must reference SKILL.md');
+      if(role.modelPreference!==undefined)validateModelPreference(role.modelPreference);
       if(role.supportingFiles?.some(x=>!/\.(?:md|txt)$/i.test(x)))fail('supporting files must be Markdown or text');
     });
     if(!roleIds.has(value.team.leadRoleId))fail('missing lead role');
@@ -87,7 +88,7 @@ const RolequiltCore = (() => {
   }
   function seedState(config) {
     return {version:1,agent:config.team.leadRoleId,view:'chat',preview:true,
-      messages:Object.fromEntries(config.roles.map(r=>[r.id,[]])),drafts:Object.fromEntries(config.roles.map(r=>[r.id,''])),tasks:config.tasks.map(t=>({...t}))};
+      modelPreferences:Object.fromEntries(config.roles.map(r=>[r.id,r.modelPreference?validateModelPreference(r.modelPreference):{provider:'none',modelId:''}])),messages:Object.fromEntries(config.roles.map(r=>[r.id,[]])),drafts:Object.fromEntries(config.roles.map(r=>[r.id,''])),tasks:config.tasks.map(t=>({...t}))};
   }
   function capHistories(state,config) {
     for(const role of config.roles)state.messages[role.id]=state.messages[role.id].slice(-100);
@@ -116,6 +117,7 @@ const RolequiltCore = (() => {
       if(config.roles.some(r=>r.id===saved.agent))state.agent=saved.agent;
       state.view=saved.view==='board'?'board':'chat';state.preview=saved.preview!==false;
       for(const role of config.roles){
+        try{if(saved.modelPreferences?.[role.id])state.modelPreferences[role.id]=validateModelPreference(saved.modelPreferences[role.id]);}catch{/* Invalid inert settings ignored; no connection. */}
         const draft=saved.drafts?.[role.id];state.drafts[role.id]=typeof draft==='string'?draft.slice(0,4000):'';
         const history=saved.messages?.[role.id];
         state.messages[role.id]=Array.isArray(history)?history.filter(m=>m&&['user','preview'].includes(m.type)&&typeof m.text==='string'&&m.text.length<=5000&&Number.isFinite(m.time)&&m.time>=0).slice(-100).map(m=>({type:m.type,text:m.text,time:m.time})):[];
@@ -124,6 +126,9 @@ const RolequiltCore = (() => {
       capHistories(state,config);return {state,recovered:false};
     }catch{return {state,recovered:true};}
   }
+  const PROVIDERS=Object.freeze({none:'Not chosen',openai:'OpenAI / GPT',anthropic:'Anthropic / Claude',google:'Google / Gemini',xai:'xAI / Grok'});
+  function validateModelPreference(value){object(value,['provider','modelId']);if(!Object.hasOwn(PROVIDERS,value.provider)||typeof value.modelId!=='string'||value.modelId.length>120||(value.modelId&&!/^[A-Za-z0-9][A-Za-z0-9._/-]{0,119}$/.test(value.modelId))||unsafeContent(value.modelId)||(value.provider==='none'&&value.modelId))fail('provider/model preference');return {provider:value.provider,modelId:value.modelId};}
+  function setModelPreference(state,config,roleId,value){if(!config.roles.some(r=>r.id===roleId))fail('unknown role');const clean=validateModelPreference(value);state.modelPreferences[roleId]=clean;return {...clean};}
   const REGISTRY_KEY='rolequilt:teams:v1';
   const MAX_TEAMS=8,BUNDLE_FILES=64,FILE_BYTES=131072,BUNDLE_BYTES=1048576,REGISTRY_BYTES=4194304;
   function portablePath(value){
@@ -171,6 +176,6 @@ const RolequiltCore = (() => {
       serialize:()=>JSON.stringify({version:2,selected,entries})
     });
   }
-  return Object.freeze({validateConfig,parseConfig,storageKey,seedState,appendLocalMessage,restoreState,createTeamRegistry,validateBundle,portablePath,references,bundleKey,REGISTRY_KEY,MAX_TEAMS,CONFIG_BYTES,STATE_BYTES,BUNDLE_FILES,FILE_BYTES,BUNDLE_BYTES,REGISTRY_BYTES,STATUS});
+  return Object.freeze({validateConfig,parseConfig,storageKey,seedState,appendLocalMessage,restoreState,createTeamRegistry,validateBundle,portablePath,references,bundleKey,REGISTRY_KEY,MAX_TEAMS,CONFIG_BYTES,STATE_BYTES,BUNDLE_FILES,FILE_BYTES,BUNDLE_BYTES,REGISTRY_BYTES,STATUS,PROVIDERS,validateModelPreference,setModelPreference});
 })();
 if(typeof module!=='undefined')module.exports=RolequiltCore;

@@ -265,6 +265,31 @@
               "maxLength": 240,
               "description": "Portable relative path; runtime additionally rejects absolute/traversal/encoded/URL/unsafe names and validates bundle presence."
             }
+          },
+          "modelPreference": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "provider",
+              "modelId"
+            ],
+            "properties": {
+              "provider": {
+                "enum": [
+                  "none",
+                  "openai",
+                  "anthropic",
+                  "google",
+                  "xai"
+                ]
+              },
+              "modelId": {
+                "type": "string",
+                "maxLength": 120,
+                "pattern": "^$|^[A-Za-z0-9][A-Za-z0-9._/-]{0,119}$"
+              }
+            },
+            "description": "Optional unverified display preference only, no credentials or live connection. none requires empty modelId in runtime."
           }
         }
       }
