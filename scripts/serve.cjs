@@ -2,7 +2,7 @@
 'use strict';
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..');
-const assets=new Map([['/','index.html'],['/index.html','index.html'],['/src/core.js','src/core.js'],['/src/demo-config.js','src/demo-config.js'],['/src/app.js','src/app.js'],['/src/import-prompt.js','src/import-prompt.js'],['/src/styles.css','src/styles.css']]);
+const assets=new Map([['/','index.html'],['/index.html','index.html'],['/src/core.js','src/core.js'],['/src/demo-config.js','src/demo-config.js'],['/src/app.js','src/app.js'],['/src/provider-settings.js','src/provider-settings.js'],['/src/import-prompt.js','src/import-prompt.js'],['/src/styles.css','src/styles.css']]);
 function createServer(){return http.createServer((req,res)=>{
  const headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"};
  if(!['GET','HEAD'].includes(req.method)){res.writeHead(405,{...headers,Allow:'GET, HEAD'});return res.end();}

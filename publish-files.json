@@ -23,5 +23,7 @@
   "tests/import.test.cjs",
   "tests/providers.test.cjs",
   "tests/publish.test.cjs",
-  "tests/server.test.cjs"
+  "tests/server.test.cjs",
+  "src/provider-settings.js",
+  "tests/provider-form.test.cjs"
 ]
