@@ -1,0 +1,223 @@
+/* Generated from config/demo.example.json. Fictional public data only. */
+'use strict';
+const RolequiltDemo = {
+  "schemaVersion": 1,
+  "team": {
+    "id": "sample-studio",
+    "name": "Sample Studio",
+    "tagline": "Five fictional roles, one shared workspace.",
+    "leadRoleId": "planner",
+    "focus": {
+      "label": "01 / A FICTIONAL STUDIO",
+      "heading": "A little clarity. A better next step.",
+      "description": "Explore how roles, conversations and shared tasks can fit together. All records are fabricated."
+    }
+  },
+  "roles": [
+    {
+      "id": "planner",
+      "name": "Planner",
+      "label": "Strategy & priorities",
+      "specialty": "Define a useful next step",
+      "color": "#d3ab70",
+      "shape": 0,
+      "summary": "A clear goal makes room for good work.",
+      "heading": "Give the work a direction.",
+      "intro": "A fictional planning role turns broad ideas into clear outcomes and a manageable next step.",
+      "focus": [
+        {
+          "title": "Clarify the outcome",
+          "detail": "Describe what a useful result would look like."
+        },
+        {
+          "title": "Choose a first step",
+          "detail": "Keep the next deliverable small enough to review."
+        }
+      ],
+      "responsibility": "Priorities, scope and clear acceptance criteria.",
+      "handoff": "Share a clear brief with the Coordinator.",
+      "deliverable": "A short brief with goals, options and the next step.",
+      "tags": [
+        "Planning",
+        "Priorities"
+      ],
+      "prompts": [
+        "Outline our next step",
+        "Draft a project brief"
+      ]
+    },
+    {
+      "id": "coordinator",
+      "name": "Coordinator",
+      "label": "Workflow & handoffs",
+      "specialty": "Keep ownership visible",
+      "color": "#a3adae",
+      "shape": 1,
+      "summary": "One board. A clear next action.",
+      "heading": "Help the pieces fit together.",
+      "intro": "This fictional workflow role keeps tasks, owners and handoffs easy to follow.",
+      "focus": [
+        {
+          "title": "Name an owner",
+          "detail": "Every task should have one accountable role."
+        },
+        {
+          "title": "Show the blocker",
+          "detail": "Describe what is needed before the task can move."
+        }
+      ],
+      "responsibility": "Task ownership, readiness and handoff notes.",
+      "handoff": "Pass ready tasks to the Maker; send decisions to the Planner.",
+      "deliverable": "A clear queue with owners, status and next actions.",
+      "tags": [
+        "Workflow",
+        "Handoffs"
+      ],
+      "prompts": [
+        "Review the shared queue",
+        "Outline a handoff"
+      ]
+    },
+    {
+      "id": "maker",
+      "name": "Maker",
+      "label": "Drafts & prototypes",
+      "specialty": "Turn a brief into a first draft",
+      "color": "#c99d91",
+      "shape": 2,
+      "summary": "Make something small and useful.",
+      "heading": "Make the next idea tangible.",
+      "intro": "This fictional creative role prepares small drafts that the team can discuss and improve.",
+      "focus": [
+        {
+          "title": "Begin with a sketch",
+          "detail": "Create a simple version of the proposed result."
+        },
+        {
+          "title": "Keep it reviewable",
+          "detail": "Show the key choices and open questions."
+        }
+      ],
+      "responsibility": "Drafts, sketches and small deliverables.",
+      "handoff": "Send a reviewable draft to the Reviewer.",
+      "deliverable": "A first draft with notes on the main choices.",
+      "tags": [
+        "Drafting",
+        "Creation"
+      ],
+      "prompts": [
+        "Outline a first draft",
+        "List the open questions"
+      ]
+    },
+    {
+      "id": "reviewer",
+      "name": "Reviewer",
+      "label": "Quality & feedback",
+      "specialty": "Check the draft against the goal",
+      "color": "#94aaa0",
+      "shape": 3,
+      "summary": "Good feedback points to the next change.",
+      "heading": "Make feedback easy to act on.",
+      "intro": "This fictional review role compares a draft with its intended outcome and suggests useful improvements.",
+      "focus": [
+        {
+          "title": "Check the goal",
+          "detail": "Look for gaps between the brief and the draft."
+        },
+        {
+          "title": "Explain the change",
+          "detail": "Attach a concrete next step to each observation."
+        }
+      ],
+      "responsibility": "Quality checks, useful feedback and open risks.",
+      "handoff": "Return actionable notes to the Maker and unresolved choices to the Planner.",
+      "deliverable": "A concise review with strengths, gaps and next changes.",
+      "tags": [
+        "Quality",
+        "Feedback"
+      ],
+      "prompts": [
+        "Create a review checklist",
+        "Outline useful feedback"
+      ]
+    },
+    {
+      "id": "scout",
+      "name": "Scout",
+      "label": "Ideas & references",
+      "specialty": "Explore possibilities before choosing",
+      "color": "#a89bc1",
+      "shape": 4,
+      "summary": "Bring options back to the team.",
+      "heading": "Open a few useful directions.",
+      "intro": "This fictional exploration role maps possibilities and gives the team a small set of ideas to discuss.",
+      "focus": [
+        {
+          "title": "Explore the options",
+          "detail": "Describe a few possible directions and their tradeoffs."
+        },
+        {
+          "title": "Keep the context",
+          "detail": "Record which questions remain unanswered."
+        }
+      ],
+      "responsibility": "Option sketches, reference notes and open questions.",
+      "handoff": "Share a concise set of options with the Planner.",
+      "deliverable": "An options note with tradeoffs and questions.",
+      "tags": [
+        "Exploration",
+        "Options"
+      ],
+      "prompts": [
+        "Map possible directions",
+        "List what we need to learn"
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-01",
+      "owner": "planner",
+      "title": "Outline a project brief",
+      "description": "Define the goal for a fictional neighborhood guide.",
+      "status": "progress"
+    },
+    {
+      "id": "task-02",
+      "owner": "coordinator",
+      "title": "Arrange the first handoff",
+      "description": "Describe the inputs and owner for a small draft.",
+      "status": "todo"
+    },
+    {
+      "id": "task-03",
+      "owner": "maker",
+      "title": "Sketch the opening page",
+      "description": "Make a simple draft for the fictional guide.",
+      "status": "todo"
+    },
+    {
+      "id": "task-04",
+      "owner": "reviewer",
+      "title": "Prepare a quality checklist",
+      "description": "Keep readability and clear navigation visible.",
+      "status": "done"
+    },
+    {
+      "id": "task-05",
+      "owner": "scout",
+      "title": "Map three possible directions",
+      "description": "Compare a short guide, a map and a small directory.",
+      "status": "todo"
+    },
+    {
+      "id": "task-06",
+      "owner": "planner",
+      "title": "Choose the next fictional scenario",
+      "description": "Waiting for a local choice in this demo.",
+      "status": "blocked"
+    }
+  ]
+};
+if(typeof module!=='undefined')module.exports=RolequiltDemo;

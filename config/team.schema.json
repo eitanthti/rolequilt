@@ -1,0 +1,315 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "team",
+    "roles",
+    "tasks"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "team": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "tagline",
+        "leadRoleId",
+        "focus"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "not": {
+            "enum": [
+              "constructor",
+              "prototype",
+              "__proto__"
+            ]
+          }
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "pattern": "[^\\s]"
+        },
+        "tagline": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": "[^\\s]"
+        },
+        "leadRoleId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "not": {
+            "enum": [
+              "constructor",
+              "prototype",
+              "__proto__"
+            ]
+          }
+        },
+        "focus": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "label",
+            "heading",
+            "description"
+          ],
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "[^\\s]"
+            },
+            "heading": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "[^\\s]"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "pattern": "[^\\s]"
+            }
+          }
+        }
+      }
+    },
+    "roles": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 24,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "label",
+          "specialty",
+          "color",
+          "shape",
+          "summary",
+          "heading",
+          "intro",
+          "focus",
+          "responsibility",
+          "handoff",
+          "deliverable",
+          "tags",
+          "prompts"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "not": {
+              "enum": [
+                "constructor",
+                "prototype",
+                "__proto__"
+              ]
+            }
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "[^\\s]"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "[^\\s]"
+          },
+          "specialty": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "[^\\s]"
+          },
+          "color": {
+            "type": "string",
+            "pattern": "^#[a-fA-F0-9]{6}$"
+          },
+          "shape": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "[^\\s]"
+          },
+          "heading": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "[^\\s]"
+          },
+          "intro": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "pattern": "[^\\s]"
+          },
+          "focus": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 4,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "title",
+                "detail"
+              ],
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160,
+                  "pattern": "[^\\s]"
+                },
+                "detail": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000,
+                  "pattern": "[^\\s]"
+                }
+              }
+            }
+          },
+          "responsibility": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "pattern": "[^\\s]"
+          },
+          "handoff": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "pattern": "[^\\s]"
+          },
+          "deliverable": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "pattern": "[^\\s]"
+          },
+          "tags": {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 5,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40,
+              "pattern": "[^\\s]"
+            }
+          },
+          "prompts": {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 4,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 240,
+              "pattern": "[^\\s]"
+            }
+          }
+        }
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 160,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "owner",
+          "title",
+          "description",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "not": {
+              "enum": [
+                "constructor",
+                "prototype",
+                "__proto__"
+              ]
+            }
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "not": {
+              "enum": [
+                "constructor",
+                "prototype",
+                "__proto__"
+              ]
+            }
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "[^\\s]"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "pattern": "[^\\s]"
+          },
+          "status": {
+            "enum": [
+              "todo",
+              "progress",
+              "blocked",
+              "done"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Rolequilt display configuration",
+  "description": "Display data only. Runtime validation additionally enforces UTF-8 size, unique IDs, references, control characters and dangerous-key limits."
+}

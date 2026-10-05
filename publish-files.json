@@ -1,0 +1,20 @@
+[
+  "README.md",
+  "SECURITY.md",
+  "TEST-REPORT.md",
+  "config/demo.example.json",
+  "config/team.schema.json",
+  "index.html",
+  "package.json",
+  "publish-files.json",
+  "scripts/build-demo.cjs",
+  "scripts/check-publish.cjs",
+  "scripts/serve.cjs",
+  "src/app.js",
+  "src/core.js",
+  "src/demo-config.js",
+  "src/styles.css",
+  "tests/core.test.cjs",
+  "tests/publish.test.cjs",
+  "tests/server.test.cjs"
+]

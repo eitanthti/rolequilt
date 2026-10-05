@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="description" content="Rolequilt is an offline workspace for fictional agent teams: individual conversations, clear role ownership and a shared task board.">
+<title>Rolequilt · Offline team workspace</title>
+<link rel="stylesheet" href="src/styles.css">
+<script defer src="src/core.js"></script>
+<script defer src="src/demo-config.js"></script>
+<script defer src="src/app.js"></script>
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to workspace</a>
+<div class="app" id="app">
+ <button class="drawer-backdrop" id="drawer-backdrop" aria-label="Close team sidebar" tabindex="-1"></button>
+ <aside class="sidebar" id="sidebar" aria-label="Team navigation">
+  <div class="brand"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="3" width="11" height="11" rx="3" fill="currentColor"/><rect x="18" y="3" width="11" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="18" width="11" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="18" y="18" width="11" height="11" rx="3" fill="currentColor"/></svg><span class="wordmark">rolequilt</span><span class="tag">TEAM</span><button class="icon-button mobile-close" id="drawer-close" aria-label="Close sidebar" data-icon="close"></button></div>
+  <div class="workspace-label">YOUR WORKSPACE</div>
+  <nav aria-label="Workspace"><button class="nav-item active" id="nav-chats"><span data-icon="chat"></span>Team conversations</button><button class="nav-item" id="nav-board"><span data-icon="board"></span>Shared task board<span class="count" id="nav-task-count"></span></button></nav>
+  <div class="divider"></div><div class="workspace-label team-label"><span>DEMO TEAM</span><span id="role-count"></span></div>
+  <nav class="agent-list" id="agent-list" aria-label="Role conversations"></nav>
+  <div class="sidebar-bottom"><div class="offline-card"><span class="offline-symbol" data-icon="unplug"></span><div><b>Backend disconnected</b><p>No model or API connected.<br>Messages stay in this browser.</p></div></div><div class="local-profile"><div class="local-profile-avatar">D</div><div><b>Demo workspace</b><small>Fictional roles & tasks</small></div><span class="local-word">LOCAL</span></div></div>
+ </aside>
+ <main class="main" id="main-content" tabindex="-1">
+  <div class="prototype-bar" role="note"><strong>OFFLINE DEMO</strong><span class="tiny-dot"></span><span>Fictional data & fixed previews · No live agents or external actions</span></div>
+  <header class="topbar"><button class="mobile-menu" id="drawer-open" aria-controls="sidebar" aria-expanded="false"><span data-icon="menu"></span>Team</button><div class="breadcrumb"><span class="workspace-crumb">Workspace</span><span class="crumb-sep">/</span><b id="breadcrumb-current">Demo team</b></div><div class="top-actions"><span class="storage-state" id="storage-state"></span><button class="text-button" id="reset-open"><span data-icon="reset"></span>Reset demo</button></div></header>
+  <div class="body-layout" id="chat-view">
+   <section class="conversation" aria-label="Selected conversation">
+    <header class="chat-header"><div id="header-avatar" class="avatar"></div><div class="chat-heading"><h1 id="chat-title">Demo role</h1><p id="chat-subtitle"></p></div><div class="header-pill"><span data-icon="unplug"></span><span class="connection-label">Not connected</span></div><button class="icon-button" id="details-open" aria-label="View role details"><span data-icon="info"></span></button></header>
+    <div class="messages" id="messages" role="log" aria-label="Demo conversation history" aria-live="polite" aria-relevant="additions text"><div class="messages-inner" id="messages-inner"></div></div>
+    <div class="composer-area"><div class="suggestions" id="suggestions" aria-label="Suggested local demo prompts"></div><form class="composer" id="composer"><label class="sr-only" for="message-input">Message this role locally</label><textarea id="message-input" rows="2" maxlength="4000" placeholder="Write a local note…" autocomplete="off"></textarea><div class="composer-toolbar"><span class="demo-mode"><span data-icon="spark"></span>Local demo · no AI</span><span class="char-count" id="char-count">0 / 4,000</span><button type="submit" class="send-button" id="send-button" aria-label="Save message locally" disabled><span data-icon="arrow"></span></button></div></form><div class="composer-foot"><label class="preview-toggle"><input type="checkbox" id="preview-toggle" checked>Show fixed preview reply</label><span class="keyboard-hint">Enter to save · Shift + Enter for new line</span></div></div>
+   </section>
+   <aside class="context" aria-label="Shared team context"><h2 class="context-title">Shared context <span>FICTIONAL DATA</span></h2><div class="phase-card"><div class="phase-overline"><span id="focus-label"></span><span data-icon="orbit"></span></div><h2 id="focus-heading"></h2><p id="focus-description"></p><div class="phase-foot" aria-hidden="true"><i></i><i></i><i></i><i></i></div></div><div class="section-title">The demo at a glance<span class="source-badge">LOCAL ONLY</span></div><div class="baseline-grid"><div><strong id="context-role-count"></strong><span>Fictional roles</span></div><div><strong id="context-task-count"></strong><span>Demo tasks</span></div></div><p class="source-note" id="team-tagline"></p><section class="context-section"><div class="section-title">Next in the demo<button id="context-board">View board ↗</button></div><div id="context-tasks"></div></section><div class="principle"><span data-icon="shield"></span><span>Private imports and live connections are unavailable. No tasks execute in this demo.</span></div></aside>
+  </div>
+  <section class="board" id="board-view" aria-labelledby="board-title" hidden><div class="board-top"><div><p class="eyebrow">ONE TEAM. SHARED PRIORITIES.</p><h1 id="board-title" tabindex="-1">The work ahead.</h1><p class="board-intro">Clear ownership. Visible handoffs. A shared place to begin.</p></div><span class="board-note">Demo tasks · edits are local</span></div><div class="stats" id="stats"></div><div class="filters"><div class="status-filters" aria-label="Filter tasks by status" id="status-filters"></div><label class="owner-filter">Owner<select id="owner-filter"><option value="all">Everyone</option></select></label></div><div class="tasks-table"><div class="table-head" aria-hidden="true"><span>TASK / DELIVERABLE</span><span>ACCOUNTABLE OWNER</span><span>DEMO STATUS</span></div><div id="task-rows"></div></div><div class="board-footer"><span data-icon="shield"></span><span>Changing a status updates this browser only. It does not assign or execute work, contact anyone, or update a connected service.</span></div></section>
+ </main>
+</div>
+<dialog id="details-dialog" aria-labelledby="details-title"><div class="dialog-inner"><header class="dialog-header"><div class="dialog-role"><div class="avatar" id="details-avatar"></div><div><h2 id="details-title"></h2><p id="details-subtitle"></p></div></div><button class="icon-button" id="details-close" aria-label="Close role details"><span data-icon="close"></span></button></header><div class="dialog-body" id="details-body"></div><footer class="dialog-footer"><button class="button-primary" id="details-done">Back to conversation</button></footer></div></dialog>
+<dialog id="reset-dialog" aria-labelledby="reset-title"><div class="dialog-inner"><h2 class="reset-title" id="reset-title">Reset this demo?</h2><div class="dialog-body"><p>This removes local messages and drafts for this demo configuration and restores fictional task statuses.</p><p>Only this demo's browser state is affected. This cannot be undone.</p></div><footer class="dialog-footer"><button class="button-secondary" id="reset-cancel" autofocus>Keep my changes</button><button class="button-primary" id="reset-confirm">Reset demo</button></footer></div></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<noscript><p class="error-panel">Rolequilt needs JavaScript for this offline demo. No external service is required.</p></noscript>
+</body>
+</html>

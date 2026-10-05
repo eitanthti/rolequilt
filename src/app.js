@@ -1,0 +1,81 @@
+/* Render configuration and local state as DOM text. No HTML input, eval or network. */
+'use strict';
+(() => {
+  const $=selector=>document.querySelector(selector);
+  const node=(tag,cls,text)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=text;return el;};
+  const paths={chat:'M4 4h16v11H8l-4 4z',board:'M3 4h18v16H3zM9 4v16M15 4v16',unplug:'M3 3l18 18M9 3v4m6-4v4M6 7h12v3a6 6 0 0 1-6 6v5M7 13a6 6 0 0 0 4 3',check:'m5 12 4 4L19 6',reset:'M3 10a9 9 0 1 1 1 8M3 4v6h6',info:'M12 11v6M12 7h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',arrow:'M12 20V4m-6 6 6-6 6 6',spark:'m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5z',shield:'m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6zM8 12l3 3 5-6',orbit:'M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0M22 7c3 4-1 11-7 14S2 21 2 17 6 6 12 3 20 3 22 7',menu:'M4 6h16M4 12h16M4 18h16',close:'m6 6 12 12M6 18 18 6',handoff:'M4 8h15m-4-4 4 4-4 4M20 16H5m4-4-4 4 4 4'};
+  const ns='http://www.w3.org/2000/svg';
+  function svgPath(d,attrs={}){const p=document.createElementNS(ns,'path');p.setAttribute('d',d);for(const [k,v]of Object.entries(attrs))p.setAttribute(k,v);return p;}
+  function icon(name){const svg=document.createElementNS(ns,'svg');svg.setAttribute('class','icon');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');svg.append(svgPath(paths[name]||paths.chat));return svg;}
+  function avatar(role){
+    const shapes=['M11 5C5 7 3 25 6 32s15 2 24-5S26 11 20 7 15 4 11 5Z','M10 6C3 9 1 25 8 32s20 3 25-5 0-17-6-21S17 3 10 6Z','M20 3C9 3 3 10 3 20s7 17 18 17 16-9 16-18S29 3 20 3Z','M12 4 30 7 38 23 27 36 10 34 3 19Z','M11 4h18a8 8 0 0 1 8 8v16a9 9 0 0 1-9 9H13A10 10 0 0 1 3 27V14A10 10 0 0 1 11 4Z'];
+    const wrap=node('span','avatar');const svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 40 40');svg.setAttribute('aria-hidden','true');svg.append(svgPath(shapes[role.shape],{fill:role.color}),svgPath('m15 15 2 5m8-5 2 5',{stroke:'#252629','stroke-width':'3.3','stroke-linecap':'round'}));wrap.append(svg);return wrap;
+  }
+  let config;
+  try{config=RolequiltCore.validateConfig(RolequiltDemo);}catch{
+    $('#app').replaceChildren(node('div','error-panel','Demo configuration could not be loaded. Restore the fictional example and rebuild it. No connection was attempted.'));return;
+  }
+  const core=RolequiltCore,key=core.storageKey(config),STATUS=core.STATUS;
+  let storageOK=true,loaded;
+  try{loaded=core.restoreState(localStorage.getItem(key),config);}catch{storageOK=false;loaded={state:core.seedState(config),recovered:false};}
+  let state=loaded.state,statusFilter='all',ownerFilter='all',toastTimer;
+  const active=()=>config.roles.find(r=>r.id===state.agent);
+  function storageLabel(){const el=$('#storage-state');el.replaceChildren(icon(storageOK?'check':'info'),node('span','',storageOK?'Saved in this browser':'Session only · storage unavailable'));el.title=storageOK?'Only browser storage is used. No server receives this data. Do not enter secrets.':'Changes remain in memory and may be lost when this page closes.';}
+  function save(){try{localStorage.setItem(key,JSON.stringify(state));storageOK=true;}catch{storageOK=false;}storageLabel();}
+  function toast(text){clearTimeout(toastTimer);$('#toast').textContent=text;$('#toast').hidden=false;toastTimer=setTimeout(()=>$('#toast').hidden=true,3500);}
+  document.querySelectorAll('[data-icon]').forEach(el=>el.replaceChildren(icon(el.dataset.icon)));
+  $('#role-count').textContent=String(config.roles.length).padStart(2,'0');$('#nav-task-count').textContent=config.tasks.length;
+  $('#context-role-count').textContent=config.roles.length;$('#context-task-count').textContent=config.tasks.length;
+  for(const f of ['label','heading','description'])$('#focus-'+f).textContent=config.team.focus[f];$('#team-tagline').textContent=config.team.tagline;
+  for(const r of config.roles){const option=node('option','',r.name);option.value=r.id;$('#owner-filter').append(option);}
+  function renderRoles(){
+    const list=$('#agent-list');list.replaceChildren();
+    for(const r of config.roles){
+      const selected=r.id===state.agent&&state.view==='chat',button=node('button','agent-button'+(selected?' active':''));button.dataset.agent=r.id;button.setAttribute('aria-label',r.name+' — '+r.label);if(selected)button.setAttribute('aria-current','page');
+      const meta=node('span','agent-meta'),name=node('span','agent-name',r.name);if(r.id===config.team.leadRoleId)name.append(node('small','','LEAD'));
+      const last=state.messages[r.id].filter(m=>m.type==='user').at(-1);meta.append(name,node('span','agent-sub',r.label),node('span','agent-preview',last?'You: '+last.text:r.summary));button.append(avatar(r),meta);
+      button.onclick=()=>{state.agent=r.id;state.view='chat';save();render();closeDrawer();$('#message-input').focus({preventScroll:true});};list.append(button);
+    }
+  }
+  function messageHeader(role,who,chip,time){const top=node('div','message-top');if(who!=='You')top.append(avatar(role));top.append(node('b','',who),node('span','sample-chip',chip));if(time!==undefined){const t=node('time','',new Date(time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));top.append(t);}return top;}
+  function renderSample(role){
+    const fragment=document.createDocumentFragment();fragment.append(node('div','sample-divider','FICTIONAL SAMPLE · ILLUSTRATIVE ONLY'));
+    const user=node('article','message user');user.append(messageHeader(role,'You','Sample'),node('div','message-bubble','How could this '+role.label.toLowerCase()+' role help a fictional team?'));fragment.append(user);
+    const article=node('article','message agent'),content=node('div','agent-content'),bubble=node('div','message-bubble');article.append(messageHeader(role,role.name,'Sample'));bubble.append(node('h2','',role.heading),node('p','',role.intro));
+    const card=node('div','priority-card'),eye=node('div','card-eyebrow','A POSSIBLE FIRST FOCUS');eye.prepend(icon('spark'));card.append(eye);
+    role.focus.forEach((step,i)=>{const row=node('div','priority-step'),copy=node('div');copy.append(node('b','',step.title),node('span','',step.detail));row.append(node('div','step-num',String(i+1).padStart(2,'0')),copy);card.append(row);});
+    bubble.append(card,node('div','message-note','Fictional role description. No model is connected and no work is dispatched.'));const handoff=node('div','handoff-line','Illustrative workflow · no task dispatched');handoff.prepend(icon('handoff'));content.append(bubble,handoff);article.append(content);fragment.append(article);return fragment;
+  }
+  function renderMessage(message,role){const article=node('article','message '+(message.type==='user'?'user':'agent'));article.append(messageHeader(role,message.type==='user'?'You':role.name,message.type==='user'?'Local only':'Fixed preview · no AI',message.time));const body=node('div',message.type==='user'?'':'agent-content');body.append(node('div','message-bubble',message.text));article.append(body);return article;}
+  function composer(){const length=$('#message-input').value.length;$('#send-button').disabled=!$('#message-input').value.trim();$('#char-count').textContent=length.toLocaleString()+' / 4,000';}
+  function renderChat(){const role=active();$('#header-avatar').replaceChildren(avatar(role));$('#chat-title').textContent=role.name;$('#chat-subtitle').textContent=role.label+' · '+role.specialty;$('#details-open').setAttribute('aria-label','View '+role.name+' role details');$('#messages').setAttribute('aria-label',role.name+' demo conversation history');$('#messages-inner').replaceChildren(renderSample(role),...state.messages[role.id].map(m=>renderMessage(m,role)));$('#message-input').value=state.drafts[role.id];$('#message-input').placeholder='Message '+role.name+' locally…';$('label[for="message-input"]').textContent='Message '+role.name+' locally';$('#preview-toggle').checked=state.preview;
+    $('#suggestions').replaceChildren();for(const prompt of role.prompts){const b=node('button','suggestion',prompt);b.prepend(node('span','','↗'));b.onclick=()=>{state.drafts[role.id]=prompt;$('#message-input').value=prompt;composer();save();$('#message-input').focus();};$('#suggestions').append(b);}composer();$('#messages').scrollTop=state.messages[role.id].length?$('#messages').scrollHeight:0;
+  }
+  function renderContext(){$('#context-tasks').replaceChildren();for(const task of state.tasks.slice(0,3)){const row=node('div','task-mini'),copy=node('div');copy.append(node('b','',task.title),node('span','',config.roles.find(r=>r.id===task.owner).name+' · '+STATUS[task.status]+' · Demo'));row.append(node('i','status-circle '+task.status),copy);$('#context-tasks').append(row);}}
+  function renderBoard(){
+    $('#stats').replaceChildren();for(const [label,status]of [['All tasks','all'],['In progress','progress'],['Blocked','blocked'],['Done','done']]){const stat=node('div','stat'),heading=node('span','stat-label',label);heading.prepend(node('i','status-circle '+(status==='all'?'':status)));stat.append(heading,node('strong','',String(status==='all'?state.tasks.length:state.tasks.filter(t=>t.status===status).length)));$('#stats').append(stat);}
+    $('#status-filters').replaceChildren();for(const [status,label]of Object.entries({all:'All tasks',...STATUS})){const b=node('button','filter'+(statusFilter===status?' active':''),label);b.dataset.filter=status;b.setAttribute('aria-pressed',String(statusFilter===status));b.onclick=()=>{statusFilter=status;renderBoard();$('[data-filter="'+status+'"]').focus();};$('#status-filters').append(b);}
+    const rows=$('#task-rows');rows.replaceChildren();const filtered=state.tasks.filter(t=>(statusFilter==='all'||t.status===statusFilter)&&(ownerFilter==='all'||t.owner===ownerFilter));if(!filtered.length){rows.append(node('p','board-empty','No demo tasks match these filters. Choose another owner or status.'));return;}
+    for(const task of filtered){const role=config.roles.find(r=>r.id===task.owner),row=node('article','task-row'),main=node('div','task-main'),owner=node('div','task-owner',role.name),status=node('div','task-status'),label=node('label','','Local preview only'),select=node('select');row.dataset.task=task.id;main.append(node('div','task-id',task.id+' / DEMO'),node('h2','task-title',task.title),node('div','task-description',task.description));owner.prepend(avatar(role));select.id='status-'+task.id;label.htmlFor=select.id;select.setAttribute('aria-label','Demo status for '+task.title);for(const [id,text]of Object.entries(STATUS)){const option=node('option','',text);option.value=id;select.append(option);}select.value=task.status;
+      select.onchange=()=>{task.status=select.value;save();renderBoard();renderContext();toast('Demo status saved locally. No work dispatched.');($('#status-'+task.id)||$('#owner-filter')).focus();};status.append(label,select);row.append(main,owner,status);rows.append(row);}
+  }
+  function render(){renderRoles();$('#chat-view').hidden=state.view!=='chat';$('#board-view').hidden=state.view!=='board';for(const view of ['chat','board']){const button=$(view==='chat'?'#nav-chats':'#nav-board');button.classList.toggle('active',state.view===view);if(state.view===view)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');}$('#breadcrumb-current').textContent=state.view==='board'?'Shared task board':config.team.name;if(state.view==='board')renderBoard();else renderChat();renderContext();storageLabel();}
+  function setView(view){state.view=view;save();render();closeDrawer();$(view==='board'?'#board-title':'#message-input').focus({preventScroll:true});}
+  $('#nav-chats').onclick=()=>setView('chat');$('#nav-board').onclick=$('#context-board').onclick=()=>setView('board');
+  $('#owner-filter').onchange=()=>{ownerFilter=$('#owner-filter').value;renderBoard();};
+  $('#message-input').oninput=()=>{state.drafts[state.agent]=$('#message-input').value.slice(0,4000);composer();save();};
+  $('#message-input').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing&&e.keyCode!==229){e.preventDefault();$('#composer').requestSubmit();}};
+  $('#composer').onsubmit=e=>{e.preventDefault();if(!$('#message-input').value.trim())return;try{core.appendLocalMessage(state,config,state.agent,$('#message-input').value,state.preview);}catch{toast('Use a message between 1 and 4,000 characters.');return;}save();renderRoles();renderChat();$('#message-input').focus();toast(state.preview?'Message saved with a fixed preview. No AI response.':'Message saved locally. No reply generated.');};
+  $('#preview-toggle').onchange=()=>{state.preview=$('#preview-toggle').checked;save();};
+  $('#details-open').onclick=()=>{const role=active();$('#details-avatar').replaceChildren(avatar(role));$('#details-title').textContent=role.name;$('#details-subtitle').textContent=role.label;const body=$('#details-body');body.replaceChildren();const tags=node('div','scope-tags');for(const tag of role.tags)tags.append(node('span','',tag));body.append(tags);for(const [heading,text]of [['Accountable for',role.responsibility],['Expected deliverable',role.deliverable],['Handoff',role.handoff]])body.append(node('h3','',heading),node('p','',text));const note=node('div','principle','Fictional workflow role. No live model, running agent or external connection is configured.');note.prepend(icon('unplug'));body.append(note);$('#details-dialog').showModal();};
+  $('#details-close').onclick=$('#details-done').onclick=()=>$('#details-dialog').close();$('#reset-open').onclick=()=>$('#reset-dialog').showModal();$('#reset-cancel').onclick=()=>$('#reset-dialog').close();
+  $('#reset-confirm').onclick=()=>{state=core.seedState(config);statusFilter='all';ownerFilter='all';$('#owner-filter').value='all';save();$('#reset-dialog').close();render();toast('Fictional demo restored. Only this configuration was reset.');};
+  for(const dialog of document.querySelectorAll('dialog'))dialog.addEventListener('click',e=>{if(e.target===dialog){const rect=dialog.getBoundingClientRect();if(e.clientX<rect.left||e.clientX>rect.right||e.clientY<rect.top||e.clientY>rect.bottom)dialog.close();}});
+  const mobile=matchMedia('(max-width:760px)');
+  function closeDrawer(){$('#app').classList.remove('drawer-open');$('#drawer-open').setAttribute('aria-expanded','false');$('#main-content').inert=false;$('#sidebar').inert=mobile.matches;}
+  function closeAndFocus(){closeDrawer();$('#drawer-open').focus();}
+  $('#drawer-open').onclick=()=>{$('#app').classList.add('drawer-open');$('#drawer-open').setAttribute('aria-expanded','true');$('#sidebar').inert=false;$('#main-content').inert=true;$('#drawer-close').focus();};$('#drawer-close').onclick=$('#drawer-backdrop').onclick=closeAndFocus;
+  document.addEventListener('keydown',e=>{if(!$('#app').classList.contains('drawer-open'))return;if(e.key==='Escape')closeAndFocus();if(e.key==='Tab'){const items=[...$('#sidebar').querySelectorAll('button')].filter(b=>b.offsetParent!==null),first=items[0],last=items.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
+  mobile.addEventListener('change',()=>{const inDrawer=$('#sidebar').contains(document.activeElement);closeDrawer();if(mobile.matches&&inDrawer)$('#drawer-open').focus();});
+  closeDrawer();render();if(loaded.recovered)toast('Unreadable saved demo state was restored to defaults.');
+})();
