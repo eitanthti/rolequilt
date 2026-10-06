@@ -1,0 +1,24 @@
+/* Shared live request handler; never generates a mock reply. */
+'use strict';
+class RolequiltLiveClient{
+ constructor(fetcher){this.fetcher=fetcher;this.session=null;this.pending=false;this.after=0;}
+ async post(route,data){const response=await this.fetcher(route,{method:'POST',headers:{'Content-Type':'application/json',...(this.session?{'X-Rolequilt-Session':this.session}:{})},body:JSON.stringify(data)});const result=await response.json();if(!response.ok)throw Error(result.error||'Live request failed');return result;}
+ async pair(){const result=await this.post('/session',{});this.session=result.session;return result;}
+ action(action,fields={}){if(!this.session)return Promise.reject(Error('Pair before live use'));return this.post('/action',{action,after:this.after,...fields});}
+ async send(roleId,text,modelId){if(this.pending)throw Error('A live turn is already pending');this.pending=true;try{return await this.action('start',{roleId,text,modelId});}catch(error){this.pending=false;throw error;}}
+}
+if(typeof module!=='undefined')module.exports={RolequiltLiveClient};
+if(typeof document!=='undefined')(()=>{
+ const client=new RolequiltLiveClient(fetch),chat=window.RolequiltChat;if(!chat)return;
+ const node=(tag,text)=>{const e=document.createElement(tag);if(text)e.textContent=text;return e;},panel=node('section'),status=node('p','Live bridge disconnected · pair to load your private team.'),pair=node('button','Pair and load private team'),enable=node('button','Connect local Codex'),mode=node('select'),model=node('select'),cancel=node('button','Cancel live turn'),approvals=node('div');
+ for(const [value,text]of [['live','Live Codex'],['demo','Explicit demo mode']]){const o=node('option',text);o.value=value;mode.append(o);}enable.disabled=true;cancel.disabled=true;panel.className='live-connection';status.setAttribute('role','status');panel.append(status,pair,enable,mode,model,cancel,approvals);document.querySelector('#main-content').prepend(panel);
+ let after=0,timer=null,stream=null,connected=false;
+ function render(data){connected=['ready','running','awaiting-approval','cancelling'].includes(data.status);status.textContent='Codex '+data.status+' · '+(model.selectedOptions[0]?.textContent||'model not discovered');enable.disabled=data.status!=='disconnected';cancel.disabled=!['running','awaiting-approval'].includes(data.status);if(data.models.length&&model.options.length===0)for(const m of data.models){const option=node('option',m.displayName);option.value=m.id;model.append(option);}
+ approvals.replaceChildren();for(const a of data.approvals){const section=node('section'),details=node('pre',JSON.stringify(a.params,null,2));section.append(node('strong',a.method),details);for(const [decision,label]of [['accept','Allow once'],['decline','Deny'],['cancel','Deny and cancel']]){const b=node('button',label);b.onclick=()=>run(async()=>render(await client.action('approve',{id:a.id,decision})));section.append(b);}approvals.append(section);}
+ for(const event of data.events||[]){if(event.revision<=after)continue;if(event.type==='delta'){if(!stream)stream={roleId:event.data.roleId,text:'',time:Date.now()};if(stream.roleId!==event.data.roleId)throw Error('Role stream mismatch');stream.text+=event.data.delta;chat.streamed(stream.roleId,stream.text,stream.time);}if(event.type==='completed'){if(event.data.status!=='completed'&&stream)chat.streamed(stream.roleId,stream.text+'\n[Turn '+event.data.status+']',stream.time);chat.complete();stream=null;client.pending=false;}}after=Math.max(after,data.revision||0);client.after=after;if(data.status==='disconnected'){client.pending=false;connected=false;status.textContent='Codex disconnected. No mock reply generated.';}}
+ async function run(fn){try{await fn();}catch(error){status.textContent='Live error: '+error.message;}}
+ pair.onclick=()=>run(async()=>{const result=await client.pair();if(result.bundle?.length)chat.applyBundle(result.bundle);if(result.messages?.length)chat.restoreLive(result.messages);pair.disabled=true;enable.disabled=false;render(await client.action('state'));timer=setInterval(()=>run(async()=>render(await client.action('state'))),350);});
+ enable.onclick=()=>run(async()=>render(await client.action('enable')));cancel.onclick=()=>run(async()=>render(await client.action('cancel')));
+ document.querySelector('#composer').addEventListener('submit',event=>{if(mode.value==='demo')return;event.preventDefault();event.stopImmediatePropagation();run(async()=>{if(!connected)throw Error('Connect local Codex before sending');const roleId=chat.role(),input=document.querySelector('#message-input'),text=input.value;if(!text.trim())return;const result=await client.send(roleId,text,model.value);chat.user(roleId,text,result.userTime);render(result);});},true);
+ window.addEventListener('pagehide',()=>clearInterval(timer));
+})();

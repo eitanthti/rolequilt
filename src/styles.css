@@ -313,3 +313,5 @@ dialog::backdrop{background:#08090bbd;backdrop-filter:blur(6px)}
 .provider-row{display:grid;gap:7px;padding:14px;border:1px solid var(--line);border-radius:8px;margin:10px 0}.provider-row h4{margin:0 0 6px}.provider-row label{font-size:11px;color:var(--muted)}.provider-row input,.provider-row select{width:100%;box-sizing:border-box;background:var(--surface);color:var(--text);border:1px solid var(--line);padding:8px;border-radius:6px}#provider-status{color:var(--muted);font-size:12px}
 
 .provider-guide-section{border-top:1px solid var(--line);padding:12px 0}.provider-links{display:flex;flex-wrap:wrap;gap:8px}.provider-links a{font-size:11px;text-decoration:none}#providers-dialog .dialog-inner{max-height:85dvh;overflow:auto}
+
+.live-connection{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;align-items:center}.live-connection p{width:100%;margin:0}.live-connection button,.live-connection select{padding:6px 10px}.live-connection pre{white-space:pre-wrap;max-height:240px;overflow:auto}

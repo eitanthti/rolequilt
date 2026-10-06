@@ -35,5 +35,7 @@
   "bridge/process.cjs",
   "bridge/ui.html",
   "bridge/ui.js",
-  "tests/bridge-runtime.test.cjs"
+  "tests/bridge-runtime.test.cjs",
+  "bridge/live-ui.js",
+  "tests/live-ui.test.cjs"
 ]
