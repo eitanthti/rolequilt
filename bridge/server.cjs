@@ -1,8 +1,8 @@
 /* Explicitly constructed loopback server; not wired to npm start. */
 'use strict';
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path');const {createGuard}=require('./guards.cjs');
-function createBridgeServer({engine,port,roles}){
- const guard=createGuard(port);let heartbeat=null,events=[],revision=0;
+function createBridgeServer({engine,port,roles,persistMessage=()=>{}}){
+ const guard=createGuard(port);let heartbeat=null,events=[],revision=0;const replies=new Map();engine.on('delta',e=>{replies.set(e.roleId,(replies.get(e.roleId)||'')+e.delta);if(replies.get(e.roleId).length>200000)engine.disconnect('Reply too large');});engine.on('completed',e=>{const text=replies.get(e.roleId)||'';replies.delete(e.roleId);if(e.status==='completed'&&text){try{persistMessage({roleId:e.roleId,text,time:Date.now()});}catch{engine.disconnect('Reply persistence failed');}}});
  for(const type of ['state','delta','approval','completed'])engine.on(type,data=>{events.push({revision:++revision,type,data});if(events.length>256||Buffer.byteLength(JSON.stringify(events))>1048576){events=[];engine.disconnect('Event buffer overflow');}});
  const server=http.createServer(async(req,res)=>{
   const headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; script-src 'self'; connect-src 'self'; style-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"};
