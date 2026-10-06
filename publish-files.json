@@ -37,5 +37,7 @@
   "bridge/ui.js",
   "tests/bridge-runtime.test.cjs",
   "bridge/live-ui.js",
-  "tests/live-ui.test.cjs"
+  "tests/live-ui.test.cjs",
+  "scripts/start-live.cjs",
+  "tests/live-launch.test.cjs"
 ]
