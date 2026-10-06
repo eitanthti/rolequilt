@@ -1,7 +1,7 @@
 /* Shared live request handler; never generates a mock reply. */
 'use strict';
 class RolequiltLiveClient{
- constructor(fetcher){this.fetcher=fetcher;this.session=null;this.pending=false;this.after=0;}
+ constructor(fetcher){this.fetcher=(...args)=>Reflect.apply(fetcher,globalThis,args);this.session=null;this.pending=false;this.after=0;}
  async post(route,data){const response=await this.fetcher(route,{method:'POST',headers:{'Content-Type':'application/json',...(this.session?{'X-Rolequilt-Session':this.session}:{})},body:JSON.stringify(data)});const result=await response.json();if(!response.ok)throw Error(result.error||'Live request failed');return result;}
  async pair(){const result=await this.post('/session',{});this.session=result.session;return result;}
  action(action,fields={}){if(!this.session)return Promise.reject(Error('Pair before live use'));return this.post('/action',{action,after:this.after,...fields});}
