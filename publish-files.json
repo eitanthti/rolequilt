@@ -39,5 +39,7 @@
   "bridge/live-ui.js",
   "tests/live-ui.test.cjs",
   "scripts/start-live.cjs",
-  "tests/live-launch.test.cjs"
+  "tests/live-launch.test.cjs",
+  "tests/mode-status.test.cjs",
+  "scripts/render-check.cjs"
 ]

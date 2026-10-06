@@ -163,7 +163,7 @@ const RolequiltCore = (() => {
     function checkEntry(entry){object(entry,['config','files']);const config=validateConfig(entry.config);if(!Array.isArray(entry.files))fail('bundle files');if(entry.files.length){const b=validateBundle(entry.files);if(b.missing.length||JSON.stringify(b.config)!==JSON.stringify(config))fail('invalid saved bundle');return {config,files:b.files};}if(references(config).length)fail('missing saved skill files');return {config,files:[]};}
     if(raw){try{if(typeof raw!=='string'||bytes(raw)>REGISTRY_BYTES)throw Error();const saved=JSON.parse(raw);inspect(saved,100000);let candidates;if(saved.version===1){object(saved,['version','selected','teams']);candidates=saved.teams.map(c=>checkEntry({config:c,files:[]}));}else{object(saved,['version','selected','entries']);if(saved.version!==2)throw Error();candidates=saved.entries.map(checkEntry);}if(!candidates.length||candidates.length>MAX_TEAMS)throw Error();const keys=candidates.map(e=>bundleKey(e.config,e.files));if(new Set(keys).size!==keys.length||!keys.includes(saved.selected))throw Error();entries=candidates;selected=saved.selected;}catch{/* Never activate invalid persisted files. */}}
     function prepareEntry(config,files){const candidate={config,files},key=bundleKey(config,files),newEntries=entries.some(e=>bundleKey(e.config,e.files)===key)?entries:[...entries,candidate];if(newEntries.length>MAX_TEAMS)throw Error('Local team limit reached (8). Clear site data or use another browser profile.');if(bytes(JSON.stringify({version:2,selected:key,entries:newEntries}))>REGISTRY_BYTES)throw Error('Remembered configuration/file limit reached (4 MiB). Clear site data or use another browser profile.');pending=candidate;}
-    return Object.freeze({
+  return Object.freeze({
       list:()=>entries.map(e=>validateConfig(e.config)),
       listEntries:()=>entries.map(e=>({key:bundleKey(e.config,e.files),config:validateConfig(e.config)})),
       current:()=>validateConfig(entries.find(e=>bundleKey(e.config,e.files)===selected).config),
@@ -177,6 +177,13 @@ const RolequiltCore = (() => {
       serialize:()=>JSON.stringify({version:2,selected,entries})
     });
   }
-  return Object.freeze({validateConfig,parseConfig,storageKey,seedState,appendLocalMessage,restoreState,createTeamRegistry,validateBundle,portablePath,references,bundleKey,REGISTRY_KEY,MAX_TEAMS,CONFIG_BYTES,STATE_BYTES,BUNDLE_FILES,FILE_BYTES,BUNDLE_BYTES,REGISTRY_BYTES,STATUS,PROVIDERS,LOCAL_RUNTIME_CANDIDATES,validateModelPreference,setModelPreference});
+    function connectionPresentation(runtime){
+    if(!runtime||runtime.mode==='demo')return {title:'OFFLINE DEMO',detail:'Explicit demo mode · local notes and fixed previews · no model requests',label:'Demo · no AI',composer:'Local demo · no AI',send:false,demo:true};
+    const connected=['ready','running','awaiting-approval','cancelling'].includes(runtime.status);
+    if(runtime.error)return {title:'LIVE REQUEST ERROR',detail:runtime.error+' · no mock fallback',label:connected?'Codex connected · request error':'Not connected · error',composer:'Live error · check connection',send:connected&&runtime.status==='ready',demo:false};
+    if(connected)return {title:'LIVE CODEX',detail:'Signed-in local Codex · '+runtime.status+' · native approvals remain in force',label:runtime.roleModel?'Codex · '+runtime.roleModel:'Codex connected · role model not yet verified',composer:runtime.status==='ready'?'Live chat · real model replies':'Live turn · '+runtime.status,send:runtime.status==='ready',demo:false};
+    return {title:'LIVE WORKSPACE · NOT CONNECTED',detail:runtime.status==='connecting'?'Connecting to local Codex…':runtime.paired?'Paired · click Connect local Codex':'Click Pair and load private team, then Connect local Codex',label:runtime.status==='connecting'?'Connecting…':'Not connected',composer:'Live chat unavailable until connected',send:false,demo:false};
+  }
+  return Object.freeze({connectionPresentation,validateConfig,parseConfig,storageKey,seedState,appendLocalMessage,restoreState,createTeamRegistry,validateBundle,portablePath,references,bundleKey,REGISTRY_KEY,MAX_TEAMS,CONFIG_BYTES,STATE_BYTES,BUNDLE_FILES,FILE_BYTES,BUNDLE_BYTES,REGISTRY_BYTES,STATUS,PROVIDERS,LOCAL_RUNTIME_CANDIDATES,validateModelPreference,setModelPreference});
 })();
 if(typeof module!=='undefined')module.exports=RolequiltCore;

@@ -11,6 +11,7 @@
     "start": "node scripts/serve.cjs",
     "demo:build": "node scripts/build-demo.cjs",
     "check:publish": "node scripts/check-publish.cjs",
-    "start:live": "node scripts/start-live.cjs"
+    "start:live": "node scripts/start-live.cjs",
+    "check:browser": "node scripts/render-check.cjs"
   }
 }
