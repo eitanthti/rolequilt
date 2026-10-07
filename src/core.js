@@ -120,7 +120,7 @@ const RolequiltCore = (() => {
         try{if(saved.modelPreferences?.[role.id])state.modelPreferences[role.id]=validateModelPreference(saved.modelPreferences[role.id]);}catch{/* Invalid inert settings ignored; no connection. */}
         const draft=saved.drafts?.[role.id];state.drafts[role.id]=typeof draft==='string'?draft.slice(0,4000):'';
         const history=saved.messages?.[role.id];
-        state.messages[role.id]=Array.isArray(history)?history.filter(m=>m&&['user','preview','live'].includes(m.type)&&typeof m.text==='string'&&m.text.length<=5000&&Number.isFinite(m.time)&&m.time>=0).slice(-100).map(m=>({type:m.type,text:m.text,time:m.time})):[];
+        state.messages[role.id]=Array.isArray(history)?history.filter(m=>m&&['user','preview','live','status'].includes(m.type)&&typeof m.text==='string'&&m.text.length<=5000&&Number.isFinite(m.time)&&m.time>=0).slice(-100).map(m=>({type:m.type,text:m.text,time:m.time,...(config.roles.some(r=>r.id===m.speakerId)?{speakerId:m.speakerId}:{}),...(typeof m.messageId==='string'&&m.messageId.length<100?{messageId:m.messageId}:{}),...(m.partial===true?{partial:true}:{})})):[];
       }
       for(const task of state.tasks){const savedTask=Array.isArray(saved.tasks)?saved.tasks.find(t=>t&&t.id===task.id):null;if(savedTask&&Object.hasOwn(STATUS,savedTask.status))task.status=savedTask.status;}
       capHistories(state,config);return {state,recovered:false};
