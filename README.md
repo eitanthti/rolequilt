@@ -1,84 +1,60 @@
 # Rolequilt
 
-A local, configurable demo workspace with separate role conversations and a shared task board. The included Sample Studio and Planner, Coordinator, Maker, Reviewer and Scout roles are fictional.
+Generic local infrastructure for configurable AI-team conversations and a shared task board. The bundled Sample Studio and its five roles are fictional. Private teams, credentials, conversations and machine-specific launch configuration belong outside this repository.
 
-Requires Node.js 20 or newer. No packages or API keys are needed.
+Requires Node.js 20 or newer. No npm dependencies or API keys are required.
+
+## Static demo
 
 ```sh
 npm test
 npm start
 ```
 
-Open the loopback address printed by the server. To select another port, set ROLEQUILT_PORT. The server exposes only the seven demo assets; it has no backend API or write endpoints.
+Open the loopback URL printed by the server; ROLEQUILT_PORT selects another port. This route serves an exact asset allowlist with no bridge API and CSP `connect-src 'none'`. Messages, drafts and task-status edits stay in browser localStorage. Fixed preview replies are explicitly illustrative and can be disabled. They never analyze messages or run agents.
 
-Messages, drafts and task-status edits stay in this browser's localStorage. Fixed preview replies can be disabled and do not analyze messages or run agents. No AI model, background automation, external services or real team is connected. Do not enter sensitive data. Reset affects only the current configuration's local demo state.
+## Import a team
 
-## Configuration
+Choose **Import team JSON**, review the fields and apply explicitly. The preparation prompt helps an existing assistant inventory authorized files and missing answers. Importing does not connect an account or grant capabilities.
 
-The fictional example is config/demo.example.json; its contract is config/team.schema.json. Role names, instructions, prompts and ownership are configuration data. For local customization, edit the example within the schema and run npm run demo:build. Validation limits sizes, IDs and owners; rendering uses DOM text. The checked-in demo must remain fictional for publication. Never commit private configurations, messages or credentials.
+The contract is `config/team.schema.json`; `config/demo.example.json` is a fictional example. Teams contain 1–24 roles and up to 160 tasks. JSON is limited to 64 KiB. Optional `skills` and `supportingFiles` are portable relative paths to selected Markdown/text. Skills end in `SKILL.md`; supporting files use `.md` or `.txt`. A folder bundle has `team-config.json` at its root and all declared references present. Preview shows text and mappings before Apply; missing references block it. Limits: 64 files, 128 KiB per supporting file, 1 MiB total. No ZIP, executable import or URL fetch.
 
-## Import your team locally
-
-Choose Import team JSON. The Prepare your team for import section provides a selectable, copyable prompt for your existing assistant. It requests an inventory of authorized team files, missing answers, and one team-config.json, excluding secrets and automatic chat exports. The prompt supports a single JSON or a selected folder containing referenced Markdown/text; files are read locally and never uploaded. Copy reports success or selects the text with a manual-copy fallback.
-
-Select a JSON file, review the roster and all configuration fields, then click Apply reviewed team. Cancel leaves the current configuration unchanged. No file is uploaded and no remote API exists. Only fictional examples are checked into this repository; imported values stay in runtime/browser-local storage and never change source files.
-
-Schema-valid teams may contain 1–24 roles and up to 160 tasks. JSON is limited to 64 KiB and 12 levels of structural nesting. Up to 8 configurations can be remembered locally, with a 4 MiB serialized registry limit including bundled text. Team/role names and instruction text can be arbitrary within documented field limits. Unknown fields (including credentials) and prototype keys are rejected. Do not import keys, passwords or sensitive data even in free-text fields: browser storage is not encrypted and text cannot be reliably classified as a secret.
-
-The local team selector returns to remembered configurations. Matching configurations retain their separate histories across reloads; the namespace combines team ID and a configuration fingerprint, so revised instructions start a separate state namespace rather than mixing incompatible histories. Browser storage failure falls back to session-only behavior. Clearing this site's browser data removes remembered configurations and histories. Importing configuration does not start agents or connect a model.
-
-Live API connection and agent execution remain unavailable. Configuration is a local browser workflow, not a live agent runtime. A storage namespace is not access control or encryption.
-
-## Publication
-
-publish-files.json is the exact source allowlist. Run npm run check:publish only after a fresh isolated local Git repository is initialized, every allowlisted file is staged and the reviewed initial commit exists. The gate scans working files, index, reachable history and remote configuration; manual private-content review remains necessary. It does not publish anything.
-
-See SECURITY.md and TEST-REPORT.md for limitations. No license has been selected by the owner. Source is visible pending a license decision; no open-source reuse license is granted by this package.
-
-## Skill-file folder bundles
-
-Single JSON remains supported when there are no file references. Optionally add `skills` and `supportingFiles` arrays to each role. Skills use portable relative paths ending exactly `SKILL.md`; supporting files use `.md` or `.txt`. Each array permits 0–16 paths. A skill can be shared by several roles. Example fields:
-
-```json
-"skills": ["skills/planning/SKILL.md"],
-"supportingFiles": ["skills/planning/notes.md"]
-```
-
-Select one folder using the folder picker:
-
-```text
-team-bundle/
-  team-config.json
-  skills/planning/SKILL.md
-  skills/planning/notes.md
-```
-
-The JSON sits at the folder root. Every declared reference must resolve to a nonempty selected file; missing references are listed and Apply stays disabled. Preview shows role-to-file mapping, filenames, UTF-8 sizes and selectable file contents before explicit Apply. Cancel leaves the active team unchanged. Applied text is available in each role's details under text-only sections; it is not installed, followed or activated. Different file contents get a separate history namespace. Matching bundles restore their own local histories.
-
-Folder limits: 64 files, 128 KiB per supporting text file, 64 KiB root JSON, 1 MiB total. No ZIP extraction or dependencies. Absolute/URL/traversal/percent-encoded/backslash paths, hidden/reserved/unsafe names, duplicate case-normalized paths, other file extensions, invalid UTF-8/control-byte content, shebang scripts and common credential patterns are rejected. Credential detection is heuristic: never include secrets in prose. Only explicitly selected files are read; unsupported extra files block the bundle rather than being silently ignored. Some browsers lack folder selection; JSON-only import still works, but referenced skills cannot be imported without a supported folder picker.
-
-Imported configs/files stay in this browser's runtime/localStorage, never in source/demo fixtures or repository history. Storage is unencrypted and may fill; session-only status is shown when persistence fails. No fetch, external upload, account access, executable import or live tool/skill execution exists.
-
-## Local subscription runtime preferences
-
-The intended connection design uses the user's own local subscription-backed vendor runtime. No separate API billing onboarding, API-key entry or silent paid fallback is offered. Rolequilt remains disconnected and has no bridge, login flow or model execution.
-
-Providers & models allows an inert preference for the local Codex/ChatGPT candidate plus an optional unverified model ID (max120 safe characters). Claude Code, Gemini and Grok routes are unavailable because supported local subscription integration for this app has not been established. Historical/imported preferences for those providers are preserved as unavailable metadata; they never activate a connection. Optional role.modelPreference remains schema-compatible, but selecting unsupported live routes is not permitted. No model catalog is fetched or availability verified.
-
-A local installation/login does not establish third-party eligibility or zero tool/file exposure. Any future connection requires specific approval after documented runtime capabilities, usage limits and data exposure are known. Authentication stays inside the official runtime; this app must never read/copy vendor token files. See PROVIDERS.md and LOCAL-RUNTIME-DESIGN.md. Imported skill text remains inert data, not activated capabilities. Deployment and integration design remain open.
+Up to eight configurations are remembered locally, bounded to 4 MiB including bundled text. Configurations and supporting-file contents have separate browser state namespaces. Cancel preserves the current team. Storage failure is reported as session-only. Browser storage is unencrypted; never import credentials or sensitive records. Clearing site data removes local browser state.
 
 ## Optional local live UI
 
-The bridge can serve this polished app on one protected loopback origin when constructed with `app:true`. It stays separate from `npm start`, which remains a static demo. Private orchestration supplies the official executable, selected workspace, reviewed team bundle, history persistence and optional durable thread store; none belongs in this public package.
+`npm start` stays a demo. Live mode requires a separately reviewed private launcher using the exported modules:
 
-On the live origin, choose **Pair and load private team**, then **Connect local Codex**. Live Codex is the default chat mode there. Pick an account-discovered model and a role, then send normally; replies stream to that role and persist through the private server callback. Explicit Demo mode uses only the original local preview handler. A disconnected or failed live request never produces a mock reply. Pair again after reload to invalidate the old session and restore private history. The first connection/resume has setup latency; subsequent turns reuse the warm process and role thread. Catalog-supported low effort is used for conversation; actual latency varies. Native approvals are displayed with one-shot choices. Existing ChatGPT authentication and included-usage checks are mandatory; API auth or unknown included usage blocks turns.
+- `bridge/process.cjs`: official Codex stdio process factory.
+- `bridge/engine.cjs`: account/model checks, thread coordination and native approvals.
+- `bridge/server.cjs`: protected loopback server; `app:true` serves the polished UI.
 
-The live handler/runtime path has been tested with a benign actual message. Rendered browser interaction remains unverified. Local session protection does not defend against malicious local processes.
+The private launcher supplies the existing official executable, user-selected workspace, reviewed team bundle and private history/thread persistence callbacks. Keep that launcher and its outputs outside Git. Review the native read/write/command scope before setting activation confirmation; imported instructions are never authorization. This package does not install Codex, log in, install a daemon, change macOS permissions or provide a hosted service.
 
-### Keep the local service under your control
+Run an existing reviewed launcher in your own Terminal:
 
-Run `npm run start:live -- /absolute/path/to/private-launch.cjs` in your own Terminal and keep that window open. This runs the existing private launcher in the foreground; it does not install a daemon, start at login, change OS permissions or publish anything. Closing the terminal or pressing Ctrl+C stops it. A refused localhost connection means the service must be checked/restarted, not that browser pairing failed. Tool-managed background sessions may disappear; their lifetime is not promised. The launcher prints startup failures and exit status in the terminal. Keep private launch configuration outside this repository.
+```sh
+npm run start:live -- /absolute/path/to/private-launch.cjs
+```
 
-`npm run check:browser` optionally runs a bounded rendered Chrome check against a fabricated team/mock runtime, using an isolated temporary profile. It requires an already-installed Chrome executable (macOS default path, or ROLEQUILT_BROWSER); it installs nothing and makes no live model request. Static previews remain intentionally offline. The live origin shows unpaired/connecting/connected/error state and enables Send only when ready.
+Keep Terminal open; closing it or pressing Ctrl+C stops the foreground service. The launcher prints exit status. Tool-managed background-session lifetime is not guaranteed.
 
-Pair and connect this team preserves an already imported team and its drafts. It registers that team's validated role context for chat only, then connects the existing subscription runtime; it never activates imported automation or external actions. Team/thread/history identity is scoped to the validated team configuration. Imported-team tool approval requests are denied. Session errors stop polling and expose the recovery action; reload or expired-session recovery does not reset stored configuration or unsent text.
+On the live origin, choose **Pair and connect this team**. Pairing preserves a selected imported team and its unsent drafts, registers validated role context for chat only, and connects the existing local subscription runtime. A default private bundle is loaded only when the fictional demo is selected. The model picker is populated from the account's catalog. Type and Send when the runtime is ready. An optional saved per-role model must match that catalog; unavailable choices never silently fall back. Saving a preference does not connect or change an active turn.
+
+Replies stream to the initiating role. Threads and persisted records are scoped to the validated team configuration. A private thread store can resume durable threads; without one, threads are ephemeral. History persistence is supplied by the private launcher. Browser reload or expired sessions expose the Pair recovery action and retain local drafts/history. Pairing a new session invalidates the old one and disconnects its old runtime. Only one turn runs at a time; duplicate pending sends are rejected. Explicit Demo mode remains available. Live errors never generate mock replies.
+
+Only official local Codex in ChatGPT account mode is supported. Included usage must be explicitly permitted by the supported rate-limit response; unknown/blocked usage fails closed. Account/model checks occur before turns, and catalog-supported low effort is used for conversation. No API-key auth, paid fallback, reset-credit purchase, token copying or OAuth implementation is provided. Other provider preferences are unavailable metadata, not connections. Vendor eligibility, limits and live protocol compatibility depend on the installed runtime.
+
+Native policies remain read-only, on-request approval and user review, with tool network access disabled. These do not guarantee every trusted command prompts or that reads are confined to the working directory. Imported-team tool approval requests are denied; imported teams cannot activate trading, outreach or automation. See SECURITY.md, PROVIDERS.md and BRIDGE-PLAN.md for limits.
+
+## Verification and publication boundary
+
+```sh
+npm test
+npm run check:browser
+npm run check:publish
+```
+
+The optional rendered check requires an already-installed Chrome executable (macOS default, or ROLEQUILT_BROWSER). It uses an isolated temporary profile, a fabricated team and mock engine. It tests pairing, Send, reload and failure recovery; it installs nothing and makes no live model request.
+
+`publish-files.json` is the exact allowlist. The publication gate checks working files, staged content, all reachable Git history and remote configuration. Pattern scans are heuristic and still require manual private-data review. None of these commands pushes or publishes. No license has been selected; no open-source reuse license is granted by this package.
