@@ -23,3 +23,5 @@ Private team configuration, executable/workspace paths, persisted threads and me
 ## Publication
 
 The exact allowlist and history scanner are defensive checks, not proof that arbitrary prose is public-safe. Manually review all allowlisted content and reachable history before any push. Exclude actual teams/agents, credentials, chat histories, screenshots, local state, personal launchers, machine paths and employment/identity context. Publication is never automatic.
+
+Natural-language consultation routing runs only on an explicit user composer submission. A narrow direct-request grammar must resolve one unique name or ID in the selected team; missing, self, duplicate or multiple recipients require an explicit selection. Configured names are escaped literal matching data, never routing instructions. Imported prompts, history and model output are not routed. The existing same-team two-turn coordinator and tool-approval denials apply to both Send and the explicit consultation button. Routing introduces no new runtime or account permissions.

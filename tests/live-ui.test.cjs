@@ -6,3 +6,19 @@ test('browser-like fetch keeps its Window receiver through pair, connect, stream
 
 test('role model preferences require discovered models and never silently fall back',()=>{const catalog=[{id:'fixture-id',model:'fixture-model'}];assert.equal(RolequiltLiveClient.resolveModel({provider:'openai',modelId:'fixture-model'},catalog,'fallback'),'fixture-id');assert.throws(()=>RolequiltLiveClient.resolveModel({provider:'openai',modelId:'unavailable'},catalog,'fallback'),/unavailable/);assert.equal(RolequiltLiveClient.resolveModel({provider:'none',modelId:''},catalog,'fixture-id'),'fixture-id');});
 test('expired pairing resets client authorization and supports fresh pair recovery',async()=>{let denied=true;const client=new RolequiltLiveClient(async route=>({status:route==='/action'&&denied?403:200,ok:route!=='/action'||!denied,json:async()=>route==='/session'?{session:'fixture'}:{error:'Session rejected',status:'ready'}}));await client.pair();await assert.rejects(client.action('state'),/Session rejected/);assert.equal(client.session,null);assert.equal(client.pending,false);denied=false;await client.pair();assert.equal((await client.action('enable')).status,'ready');});
+
+
+test('composer consultation intent routes only direct requests to one exact same-team teammate',()=>{
+ const roles=[{id:'lead',name:'Lead'},{id:'reviewer',name:'Review Partner'},{id:'scout',name:'Scout'}],intent=text=>RolequiltLiveClient.consultationIntent(text,roles,'lead');
+ for(const text of ['Consult Review Partner about this','Please ask Review Partner to review this','Can you talk with reviewer about the plan?','Lead, could you check with Review Partner?','I would like you to speak to reviewer about this','Get feedback from REVIEW PARTNER'])assert.deepEqual(intent(text),{type:'consult',recipientId:'reviewer'},text);
+ for(const text of ['Ask the other agent','Consult an external person','Ask Review Partner and Scout','Ask Review Partner to consult Scout','Consult Lead','Consult Review Partner and another person','Consult Review Partners'])assert.equal(intent(text).type,'clarify',text);
+ for(const text of ['Hello','Tell me how to consult Review Partner','Do not ask Review Partner','Yesterday I asked Review Partner','"Consult Review Partner"','> Ask Review Partner','Here is a prompt:\nConsult Review Partner','Can you ask me three questions?','Ask why this happened'])assert.equal(intent(text).type,'chat',text);
+ assert.equal(RolequiltLiveClient.consultationIntent('Ask Duplicate',roles.concat([{id:'a',name:'Duplicate'},{id:'b',name:'Duplicate'}]),'lead').type,'clarify');
+ assert.deepEqual(RolequiltLiveClient.consultationIntent('Consult A+B about this',[{id:'lead',name:'Lead'},{id:'special',name:'A+B'}],'lead'),{type:'consult',recipientId:'special'});
+ assert.equal(RolequiltLiveClient.consultationIntent('Consult Review Partner',[{id:'lead',name:'Lead'}],'lead').type,'clarify');
+ assert.deepEqual(RolequiltLiveClient.consultationIntent('Consult Cafe\u0301 about this',[{id:'lead',name:'Lead'},{id:'accent',name:'Café'}],'lead'),{type:'consult',recipientId:'accent'});
+});
+test('consultation client uses existing protected endpoint and reports failures without spawning ordinary chat',async()=>{
+ const actions=[],client=new RolequiltLiveClient(async(route,options)=>{const body=JSON.parse(options.body);actions.push(body);return {ok:route==='/session',json:async()=>route==='/session'?{session:'fixture'}:{error:'Recipient unavailable'}};});
+ await client.pair();await assert.rejects(client.consult('lead','reviewer','Consult Review Partner','fixture','fixture'),/Recipient unavailable/);assert.equal(client.pending,false);assert.equal(actions.filter(x=>x.action==='consult').length,1);assert.equal(actions.filter(x=>x.action==='start').length,0);
+});
