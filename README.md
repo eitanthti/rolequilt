@@ -25,11 +25,12 @@ Up to eight configurations are remembered locally, bounded to 4 MiB including bu
 
 `npm start` stays a demo. Live mode requires a separately reviewed private launcher using the exported modules:
 
-- `bridge/process.cjs`: official Codex stdio process factory.
-- `bridge/engine.cjs`: account/model checks, thread coordination and native approvals.
+- `bridge/process.cjs`: runtime process factories; `createRuntimeTransport({runtime})` selects official local Codex (`openai`) or Claude Code (`anthropic`).
+- `bridge/claude.cjs`: tool-free Claude Code CLI adapter behind the same coordinator interface.
+- `bridge/engine.cjs`: account/model checks, thread coordination and native approvals; its `runtime` option must match the process factory.
 - `bridge/server.cjs`: protected loopback server; `app:true` serves the polished UI.
 
-The private launcher supplies the existing official executable, user-selected workspace, reviewed team bundle and private history/thread persistence callbacks. Keep that launcher and its outputs outside Git. Review the native read/write/command scope before setting activation confirmation; imported instructions are never authorization. This package does not install Codex, log in, install a daemon, change macOS permissions or provide a hosted service.
+The private launcher supplies the existing official executable, user-selected workspace, reviewed team bundle and private history/thread persistence callbacks. Keep that launcher and its outputs outside Git. Review the native read/write/command scope before setting activation confirmation; imported instructions are never authorization. This package does not install Codex or Claude Code, log in, install a daemon, change macOS permissions or provide a hosted service.
 
 Run an existing reviewed launcher in your own Terminal:
 
@@ -43,7 +44,7 @@ On the live origin, choose **Pair and connect this team**. Pairing preserves a s
 
 Replies stream to the initiating role. Threads and persisted records are scoped to the validated team configuration. A private thread store can resume durable threads; without one, threads are ephemeral. History persistence is supplied by the private launcher. Browser reload or expired sessions expose the Pair recovery action and retain local drafts/history. Pairing a new session invalidates the old one and disconnects its old runtime. Only one turn runs at a time; duplicate pending sends are rejected. Explicit Demo mode remains available. Live errors never generate mock replies.
 
-Only official local Codex in ChatGPT account mode is supported. Included usage must be explicitly permitted by the supported rate-limit response; unknown/blocked usage fails closed. Account/model checks occur before turns, and catalog-supported low effort is used for conversation. No API-key auth, paid fallback, reset-credit purchase, token copying or OAuth implementation is provided. Other provider preferences are unavailable metadata, not connections. Vendor eligibility, limits and live protocol compatibility depend on the installed runtime.
+Supported runtimes are official local Codex in ChatGPT account mode and official local Claude Code signed in with a Claude subscription. Codex included usage must be explicitly permitted by its rate-limit response; Claude Code disconnects on reported overage or rejected limits. Unknown/blocked usage fails closed. Account/model checks occur before turns, and low effort is used for conversation. Claude Code chat runs with every tool, MCP server and settings source disabled. No API-key auth, paid fallback, reset-credit purchase, token copying or OAuth implementation is provided. Gemini and Grok preferences are unavailable metadata, not connections. Vendor eligibility, limits and live protocol compatibility depend on the installed runtime.
 
 Native policies remain read-only, on-request approval and user review, with tool network access disabled. These do not guarantee every trusted command prompts or that reads are confined to the working directory. Imported-team tool approval requests are denied; imported teams cannot activate trading, outreach or automation. See SECURITY.md, PROVIDERS.md and BRIDGE-PLAN.md for limits.
 

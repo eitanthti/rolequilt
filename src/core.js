@@ -126,8 +126,8 @@ const RolequiltCore = (() => {
       capHistories(state,config);return {state,recovered:false};
     }catch{return {state,recovered:true};}
   }
-  const PROVIDERS=Object.freeze({none:'Not chosen',openai:'Local Codex / own ChatGPT plan (candidate)',anthropic:'Local Claude Code (unavailable here)',google:'Gemini local subscription (unavailable)',xai:'Grok local subscription (unavailable)'});
-  const LOCAL_RUNTIME_CANDIDATES=Object.freeze(['none','openai']);
+  const PROVIDERS=Object.freeze({none:'Not chosen',openai:'Local Codex / own ChatGPT plan (candidate)',anthropic:'Local Claude Code / own Claude plan (candidate)',google:'Gemini local subscription (unavailable)',xai:'Grok local subscription (unavailable)'});
+  const LOCAL_RUNTIME_CANDIDATES=Object.freeze(['none','openai','anthropic']);
   function validateModelPreference(value){object(value,['provider','modelId']);if(!Object.hasOwn(PROVIDERS,value.provider)||typeof value.modelId!=='string'||value.modelId.length>120||(value.modelId&&!/^[A-Za-z0-9][A-Za-z0-9._/-]{0,119}$/.test(value.modelId))||unsafeContent(value.modelId)||(value.provider==='none'&&value.modelId))fail('provider/model preference');return {provider:value.provider,modelId:value.modelId};}
   function setModelPreference(state,config,roleId,value){if(!LOCAL_RUNTIME_CANDIDATES.includes(value?.provider))fail('local subscription route not verified for this app');if(!config.roles.some(r=>r.id===roleId))fail('unknown role');const clean=validateModelPreference(value);state.modelPreferences[roleId]=clean;return {...clean};}
   const REGISTRY_KEY='rolequilt:teams:v1';
@@ -179,10 +179,10 @@ const RolequiltCore = (() => {
   }
     function connectionPresentation(runtime){
     if(!runtime||runtime.mode==='demo')return {title:'OFFLINE DEMO',detail:'Explicit demo mode · local notes and fixed previews · no model requests',label:'Demo · no AI',composer:'Local demo · no AI',send:false,demo:true};
-    const connected=['ready','running','awaiting-approval','cancelling'].includes(runtime.status);
-    if(runtime.error)return {title:'LIVE REQUEST ERROR',detail:runtime.error+' · no mock fallback',label:connected?'Codex connected · request error':'Not connected · error',composer:'Live error · check connection',send:connected&&runtime.status==='ready',demo:false};
-    if(connected)return {title:'LIVE CODEX',detail:'Signed-in local Codex · '+runtime.status+' · native approvals remain in force',label:runtime.roleModel?'Codex · '+runtime.roleModel:'Codex connected · role model not yet verified',composer:runtime.status==='ready'?'Live chat · real model replies':'Live turn · '+runtime.status,send:runtime.status==='ready',demo:false};
-    return {title:'LIVE WORKSPACE · NOT CONNECTED',detail:runtime.status==='connecting'?'Connecting to local Codex…':runtime.paired?'Paired · click Connect local Codex':'Click Pair and connect this team to enable live chat',label:runtime.status==='connecting'?'Connecting…':'Not connected',composer:'Live chat unavailable until connected',send:false,demo:false};
+    const connected=['ready','running','awaiting-approval','cancelling'].includes(runtime.status),name=runtime.runtime?.label||'Local runtime';
+    if(runtime.error)return {title:'LIVE REQUEST ERROR',detail:runtime.error+' · no mock fallback',label:connected?name+' connected · request error':'Not connected · error',composer:'Live error · check connection',send:connected&&runtime.status==='ready',demo:false};
+    if(connected)return {title:'LIVE · '+name.toUpperCase(),detail:'Signed-in local '+name+' · '+runtime.status+' · runtime policy remains in force',label:runtime.roleModel?name+' · '+runtime.roleModel:name+' connected · role model not yet verified',composer:runtime.status==='ready'?'Live chat · real model replies':'Live turn · '+runtime.status,send:runtime.status==='ready',demo:false};
+    return {title:'LIVE WORKSPACE · NOT CONNECTED',detail:runtime.status==='connecting'?'Connecting to the local runtime…':runtime.paired?'Paired · click Connect local runtime':'Click Pair and connect this team to enable live chat',label:runtime.status==='connecting'?'Connecting…':'Not connected',composer:'Live chat unavailable until connected',send:false,demo:false};
   }
   return Object.freeze({connectionPresentation,validateConfig,parseConfig,storageKey,seedState,appendLocalMessage,restoreState,createTeamRegistry,validateBundle,portablePath,references,bundleKey,REGISTRY_KEY,MAX_TEAMS,CONFIG_BYTES,STATE_BYTES,BUNDLE_FILES,FILE_BYTES,BUNDLE_BYTES,REGISTRY_BYTES,STATUS,PROVIDERS,LOCAL_RUNTIME_CANDIDATES,validateModelPreference,setModelPreference});
 })();

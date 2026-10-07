@@ -7,9 +7,9 @@ function createGuard(port){
  function sameOrigin(h){if(closed||h.host!==host||h.origin!==origin||h['sec-fetch-site']!=='same-origin')throw Error('Origin rejected');}
  return {pair(h){sameOrigin(h);if(secret)throw Error('Already paired');secret=randomBytes(32).toString('hex');return secret;},check(h){sameOrigin(h);const supplied=h['x-rolequilt-session'];if(!secret||typeof supplied!=='string'||supplied.length!==secret.length||!timingSafeEqual(Buffer.from(supplied),Buffer.from(secret)))throw Error('Session rejected');return true;},close(){secret=null;closed=true;}};
 }
-function activationGate(scope,account,usage){
+function activationGate(scope,account,usage,accountType='chatgpt'){
  if(!scope||scope.confirmed!==true||scope.readScope!=='mac-user-files'||typeof scope.workspace!=='string'||!scope.workspace.startsWith('/')||scope.workspace==='/')throw Error('Mac file scope not explicitly confirmed');
- if(account?.account?.type!=='chatgpt')throw Error('Existing ChatGPT subscription required');
+ if(account?.account?.type!==accountType)throw Error('Existing local subscription login required');
  if(usage?.ordinaryUsageAllowed!==true)throw Error('Included usage unavailable or unknown');return true;
 }
 function approvalResponse(method,decision){

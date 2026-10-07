@@ -5,4 +5,7 @@ function createCodexTransport({executable,workspace,confirmed}){
  const env={};for(const name of ['HOME','PATH','TMPDIR','LANG','LC_ALL'])if(process.env[name])env[name]=process.env[name];
  return new Transport(spawn(fs.realpathSync(executable),['app-server','--stdio','-c','approval_policy="on-request"','-c','sandbox_mode="read-only"'],{cwd,env,stdio:['pipe','pipe','pipe'],shell:false}));
 }
-module.exports={createCodexTransport};
+const {createClaudeTransport}=require('./claude.cjs');
+// Launchers pick one runtime per engine; pass the same id as the Engine runtime option.
+function createRuntimeTransport({runtime='openai',...options}){if(runtime==='openai')return createCodexTransport(options);if(runtime==='anthropic')return createClaudeTransport(options);throw Error('Unsupported local runtime');}
+module.exports={createCodexTransport,createClaudeTransport,createRuntimeTransport};

@@ -41,5 +41,7 @@
   "scripts/start-live.cjs",
   "tests/live-launch.test.cjs",
   "tests/mode-status.test.cjs",
-  "scripts/render-check.cjs"
+  "scripts/render-check.cjs",
+  "bridge/claude.cjs",
+  "tests/claude-runtime.test.cjs"
 ]
