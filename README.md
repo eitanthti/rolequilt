@@ -27,7 +27,7 @@ Up to eight configurations are remembered locally, bounded to 4 MiB including bu
 
 - `bridge/process.cjs`: runtime process factories; `createRuntimeTransport({runtime})` selects official local Codex (`openai`) or Claude Code (`anthropic`).
 - `bridge/claude.cjs`: tool-free Claude Code CLI adapter behind the same coordinator interface.
-- `bridge/engine.cjs`: account/model checks, thread coordination and native approvals; its `runtime` option must match the process factory.
+- `bridge/engine.cjs`: account/model checks, thread coordination and native approvals. Pass `runtime` plus `createTransport` for one runtime, or `transports` keyed by runtime id to run Codex and Claude Code together on one page.
 - `bridge/server.cjs`: protected loopback server; `app:true` serves the polished UI.
 
 The private launcher supplies the existing official executable, user-selected workspace, reviewed team bundle and private history/thread persistence callbacks. Keep that launcher and its outputs outside Git. Review the native read/write/command scope before setting activation confirmation; imported instructions are never authorization. This package does not install Codex or Claude Code, log in, install a daemon, change macOS permissions or provide a hosted service.

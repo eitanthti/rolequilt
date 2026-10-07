@@ -28,7 +28,7 @@ test('chat runs tool-free through the coordinator, streams to the initiating rol
  h.init(c,{plugins:[{name:'fixture-builtin',path:'builtin'}],agents:['fixture-agent'],skills:[],slash_commands:[]});h.emit(c,{type:'stream_event',event:{type:'content_block_start',content_block:{type:'text'}}});h.emit(c,{type:'stream_event',event:{type:'content_block_delta',delta:{type:'text_delta',text:'Fictional reply'}}});h.emit(c,{type:'rate_limit_event',rate_limit_info:{status:'allowed',isUsingOverage:false}});h.emit(c,{type:'result',subtype:'success',is_error:false});await tick();
  assert.deepEqual(deltas,[{roleId:'one',delta:'Fictional reply'}]);assert.equal(done[0].status,'completed');assert.equal(h.engine.status,'ready');
  await h.engine.start('one','Again','sonnet');assert.equal(h.spawned.filter(x=>x.args[0]==='-p').length,1);assert.equal(c.written.length,2);
- h.emit(c,{type:'result',subtype:'success',is_error:false});await tick();await h.engine.start('two','Hello','sonnet');assert.equal(h.spawned.filter(x=>x.args[0]==='-p').length,2);assert.notEqual(h.engine.threads.get('one'),h.engine.threads.get('two'));
+ h.emit(c,{type:'result',subtype:'success',is_error:false});await tick();await h.engine.start('two','Hello','sonnet');assert.equal(h.spawned.filter(x=>x.args[0]==='-p').length,2);assert.notEqual(h.engine.threads.get('one@anthropic'),h.engine.threads.get('two@anthropic'));
  await h.engine.cancel();assert.equal(h.turn().written.at(-1).request.subtype,'interrupt');h.emit(h.turn(),{type:'result',subtype:'error_during_execution',is_error:true});await tick();assert.equal(done.at(-1).status,'interrupted');
  h.engine.disconnect();assert(h.spawned.filter(x=>x.args[0]==='-p').every(x=>x.killed.includes('SIGTERM')));
 });
@@ -43,7 +43,7 @@ test('paid overage or exhausted included usage disconnects and blocks further tu
 });
 
 test('durable threads resume by session id; ephemeral threads never silently restart',async()=>{
- const h=harness(),store=new Map([['one','00000000-0000-4000-8000-000000000001']]);h.engine.threadStore={get:k=>store.get(k),set:(k,v)=>store.set(k,v)};await h.engine.enable();await h.engine.start('one','Hello','sonnet');const c=h.turn();assert.equal(c.args[c.args.indexOf('--resume')+1],'00000000-0000-4000-8000-000000000001');assert(!c.args.includes('--no-session-persistence'));
+ const h=harness(),store=new Map([['one@anthropic','00000000-0000-4000-8000-000000000001']]);h.engine.threadStore={get:k=>store.get(k),set:(k,v)=>store.set(k,v)};await h.engine.enable();await h.engine.start('one','Hello','sonnet');const c=h.turn();assert.equal(c.args[c.args.indexOf('--resume')+1],'00000000-0000-4000-8000-000000000001');assert(!c.args.includes('--no-session-persistence'));
  const e=harness();await e.engine.enable();await e.engine.start('one','Hello','sonnet');const first=e.turn();e.emit(first,{type:'result',subtype:'success',is_error:false});await tick();first.emit('exit',0);await assert.rejects(e.engine.start('one','Again','sonnet'));assert.equal(e.engine.status,'disconnected');
 });
 
@@ -57,4 +57,41 @@ test('factory requires confirmation and passes no API-key or provider variables'
 test('engine rejects unknown runtimes and keeps Codex as the default',()=>{
  assert.throws(()=>new Engine({workspace:'/fictional/project',roles:[],runtime:'other'}),/Unsupported/);assert.equal(new Engine({workspace:'/fictional/project',roles:[]}).snapshot().runtime.id,'openai');
  const {createRuntimeTransport}=require('../bridge/process.cjs');assert.throws(()=>createRuntimeTransport({runtime:'other'}),/Unsupported/);
+});
+
+class CodexMock extends EventEmitter{constructor(auth='chatgpt'){super();this.auth=auth;this.calls=[];this.replies=[];this.count=0;}async call(method,params){this.calls.push({method,params});if(method==='initialize')return {};if(method==='account/read')return {account:{type:this.auth}};if(method==='account/rateLimits/read')return {ordinaryUsageAllowed:true};if(method==='model/list')return {data:[{id:'fixture-choice',model:'fixture-model',displayName:'Fixture'}]};if(method==='thread/start')return {...params,sandbox:{type:'readOnly'},thread:{id:'codex-thread-'+(++this.count)}};if(method==='turn/start')return {turn:{id:'codex-turn-'+this.count}};return {};}notify(){}respond(id,result){this.replies.push({id,result});}reject(id){this.replies.push({id,error:true});}close(){this.closed=true;this.emit('closed');}}
+function combined(codexAuth='chatgpt'){const h=harness(),codex=new CodexMock(codexAuth);const engine=new Engine({workspace:'/fictional/project',roles:[{id:'one',instructions:'Fictional role one'},{id:'two',instructions:'Fictional role two'}],confirmed:true,transports:{openai:()=>codex,anthropic:()=>h.runtime}});return {...h,engine,codex};}
+
+test('one engine connects both runtimes with namespaced catalogs and routes each turn to its runtime',async()=>{
+ const h=combined(),deltas=[];h.engine.on('delta',d=>deltas.push(d));await h.engine.enable();
+ assert.deepEqual(h.engine.models.map(m=>[m.id,m.runtime]),[['openai:fixture-choice','openai'],['anthropic:sonnet','anthropic'],['anthropic:opus','anthropic'],['anthropic:haiku','anthropic']]);
+ const snap=h.engine.snapshot();assert.equal(snap.runtime.label,'Codex + Claude Code');assert.deepEqual(snap.runtimes.map(r=>[r.id,r.connected]),[['openai',true],['anthropic',true]]);
+ await h.engine.start('one','Hello','openai:fixture-choice');assert.equal(h.codex.calls.filter(c=>c.method==='turn/start').length,1);
+ h.codex.emit('notification',{method:'item/agentMessage/delta',params:{threadId:'codex-thread-1',delta:'Codex reply'}});h.codex.emit('notification',{method:'turn/completed',params:{threadId:'codex-thread-1',turn:{id:'codex-turn-1',status:'completed'}}});
+ await h.engine.start('two','Hello','anthropic:sonnet');const c=h.turn();assert.equal(c.args[c.args.indexOf('--model')+1],'sonnet');
+ // A Codex-shaped event on the Claude turn's thread from the other runtime is ignored.
+ h.codex.emit('notification',{method:'item/agentMessage/delta',params:{threadId:h.engine.turn.threadId,delta:'Spoofed'}});
+ h.emit(c,{type:'stream_event',event:{type:'content_block_delta',delta:{type:'text_delta',text:'Claude reply'}}});h.emit(c,{type:'result',subtype:'success',is_error:false});await tick();
+ assert.deepEqual(deltas.map(d=>d.roleId+':'+d.delta),['one:Codex reply','two:Claude reply']);assert.equal(h.engine.status,'ready');
+ h.engine.disconnect();assert(h.codex.closed);assert(c.killed.includes('SIGTERM'));
+});
+
+test('consultation crosses runtimes using real replies from each',async()=>{
+ const h=combined(),events=[];h.engine.on('consultation',x=>events.push(x));await h.engine.enable();
+ await h.engine.consult('one','two','Compare options','openai:fixture-choice','anthropic:haiku');const c=h.turn();assert.match(c.written[0].message.content,/Compare options/);
+ h.emit(c,{type:'stream_event',event:{type:'content_block_delta',delta:{type:'text_delta',text:'Claude evidence'}}});h.emit(c,{type:'result',subtype:'success',is_error:false});await tick();await tick();
+ const codexTurn=h.codex.calls.filter(x=>x.method==='turn/start').at(-1);assert.match(codexTurn.params.input[0].text,/Claude evidence/);
+ h.codex.emit('notification',{method:'turn/completed',params:{threadId:'codex-thread-1',turn:{id:'codex-turn-1',status:'completed'}}});await tick();assert.equal(events.at(-1).stage,'completed');h.engine.disconnect();
+});
+
+test('a runtime that fails to connect is reported while the other stays usable; all failing fails activation',async()=>{
+ const h=combined('apiKey');await h.engine.enable();assert.equal(h.engine.status,'ready');assert(h.codex.closed);assert.deepEqual(h.engine.models.map(m=>m.runtime),['anthropic','anthropic','anthropic']);
+ const snap=h.engine.snapshot();assert.match(snap.runtimes[0].error,/Codex subscription login required/);assert.equal(snap.runtimes[0].connected,false);
+ await assert.rejects(h.engine.start('one','Hello','openai:fixture-choice'),/Invalid turn/);await h.engine.start('one','Hello','anthropic:sonnet');h.engine.disconnect();
+ const none=combined('apiKey');none.runtime.readAuth=async()=>({loggedIn:false});await assert.rejects(none.engine.enable(),/subscription login required/);assert.equal(none.engine.status,'disconnected');
+});
+
+test('approvals answer through the runtime that asked',async()=>{
+ const h=combined();const engine=new Engine({workspace:'/fictional/project',roles:[{id:'one',instructions:'Fictional'}],confirmed:true,transports:{openai:()=>h.codex,anthropic:()=>h.runtime}});await engine.enable();await engine.start('one','Hello','openai:fixture-choice');
+ h.codex.emit('request',{id:5,method:'item/commandExecution/requestApproval',params:{threadId:'codex-thread-1',turnId:'codex-turn-1',command:'fixture',cwd:'/fictional/project'}});assert.equal(engine.status,'awaiting-approval');engine.approve('5','decline');assert.deepEqual(h.codex.replies.at(-1),{id:5,result:{decision:'decline'}});engine.disconnect();
 });

@@ -9,7 +9,7 @@ The optional bridge drives one of the user's existing official local runtimes, e
 | Gemini local subscription | `google` | Unavailable; no verified bridge route |
 | Grok local subscription | `xai` | Unavailable; no verified bridge route |
 
-A private launcher connects one runtime per bridge process: pass the same id to `createRuntimeTransport({runtime})` and `new Engine({runtime})`. A role whose saved preference names a different runtime is blocked rather than silently routed to the connected one.
+A private launcher can connect one runtime (`new Engine({runtime, createTransport})`) or several behind one team and one page (`new Engine({transports:{openai:()=>…, anthropic:()=>…}})`, each factory built with `createRuntimeTransport({runtime})`). With several runtimes the model picker lists every catalog with runtime-prefixed IDs (`openai:…`, `anthropic:sonnet`), each role's saved preference chooses its runtime, and consultations can cross runtimes. A runtime that cannot connect is reported by name while the others stay usable. Codex and Claude Code conversations are stored under separate thread keys. A role whose saved preference names a runtime that is not connected is blocked rather than silently routed elsewhere.
 
 Pair and connect registers the selected validated team for chat and connects the existing runtime. Saving provider/model preferences alone does not connect. A nonblank model preference must resolve to the runtime's catalog; an unavailable model blocks that send rather than falling back. The runtime panel reports the actual runtime name, connection state and role model when available.
 
