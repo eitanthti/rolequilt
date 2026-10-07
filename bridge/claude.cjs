@@ -5,7 +5,8 @@ const path=require('node:path'),fs=require('node:fs'),{spawn}=require('node:chil
 const MODEL_ALIASES=Object.freeze([['sonnet','Claude Sonnet (latest)'],['opus','Claude Opus (latest)'],['haiku','Claude Haiku (latest)']]);
 const EFFORTS=Object.freeze(['low','medium','high']);
 // Every built-in tool, MCP server, settings source, plugin/hook customization and slash command is switched off; denied prompts never reach a person.
-const CHAT_ONLY_ARGS=Object.freeze(['-p','--input-format','stream-json','--output-format','stream-json','--verbose','--include-partial-messages','--tools','','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--setting-sources','','--safe-mode','--permission-prompts','none','--disable-slash-commands','--no-chrome']);
+// Admin-managed policy hooks cannot be switched off from the CLI; hook events are surfaced so any hook run disconnects. --bare would skip them but cannot use a subscription login.
+const CHAT_ONLY_ARGS=Object.freeze(['-p','--input-format','stream-json','--output-format','stream-json','--verbose','--include-partial-messages','--tools','','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--setting-sources','','--safe-mode','--permission-prompts','none','--disable-slash-commands','--no-chrome','--include-hook-events']);
 function lines(stream,maxBytes,onLine,onOverflow){let buffer='';stream.setEncoding('utf8');stream.on('data',s=>{buffer+=s;if(Buffer.byteLength(buffer)>maxBytes){buffer='';return onOverflow();}let end;while((end=buffer.indexOf('\n'))>=0){const line=buffer.slice(0,end);buffer=buffer.slice(end+1);if(line.trim())onLine(line);}});}
 class ClaudeRuntime extends EventEmitter{
  constructor({executable,workspace,env,spawnProcess=spawn,timeout=15000,maxBytes=1048576}){super();this.executable=executable;this.workspace=workspace;this.env=env;this.spawnProcess=spawnProcess;this.timeout=timeout;this.maxBytes=maxBytes;this.closed=false;this.threads=new Map();this.subscription=false;this.usageBlocked=false;this.active=null;}
@@ -50,9 +51,12 @@ class ClaudeRuntime extends EventEmitter{
   const turn=this.active?.threadId===thread.id?this.active:null;
   if(m.type==='system'&&m.subtype==='init'){
    // Fail closed unless the runtime itself reports a tool-free, MCP-free, subscription-authenticated session.
+   // Listed agents are inert: with zero tools there is no tool that can start one.
    if(!Array.isArray(m.tools)||m.tools.length||!Array.isArray(m.mcp_servers)||m.mcp_servers.length||m.apiKeySource!=='none'||m.session_id!==thread.id||typeof m.model!=='string')return this.close('Runtime policy mismatch');
+   if((m.plugins!==undefined&&(!Array.isArray(m.plugins)||m.plugins.some(p=>p?.path!=='builtin')))||(m.skills!==undefined&&(!Array.isArray(m.skills)||m.skills.length))||(m.slash_commands!==undefined&&(!Array.isArray(m.slash_commands)||m.slash_commands.length)))return this.close('Runtime customizations loaded');
    thread.resolvedModel=m.model;return;
   }
+  if(m.type==='system'&&typeof m.subtype==='string'&&m.subtype.startsWith('hook_'))return this.close('Runtime hook ran; chat-only boundary not held');
   if(m.type==='control_request')return this.close('Unsupported runtime request');
   if(m.type==='rate_limit_event'){const info=m.rate_limit_info||{};if(info.isUsingOverage===true||info.status==='rejected'){this.usageBlocked=true;this.emit('notification',{method:'account/rateLimits/updated',params:{}});return this.close('Included usage exhausted or paid overage in use');}return;}
   const content=m.type==='assistant'?m.message?.content:null;if(Array.isArray(content)&&content.some(c=>c?.type!=='text'&&c?.type!=='thinking'&&c?.type!=='redacted_thinking'))return this.close('Unexpected tool activity');
