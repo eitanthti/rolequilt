@@ -12,7 +12,7 @@ function scanContent(text){
   ];
   for(const [name,regex]of patterns)if(regex.test(text))findings.push(name);
   const emails=text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)||[];
-  if(emails.some(email=>!/@(?:example\.(?:com|org|invalid)|users\.noreply\.github\.com)$/i.test(email)))findings.push('non-example email');
+  if(emails.some(email=>!/@(?:example\.(?:com|org|invalid)|users\.noreply\.github\.com)$/i.test(email)&&!/^noreply@anthropic\.com$/i.test(email)))findings.push('non-example email');
   if(text.includes('\u0000'))findings.push('binary content');
   return findings;
 }

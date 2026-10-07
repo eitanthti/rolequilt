@@ -9,3 +9,4 @@ test('rejects token-shaped values, real email addresses, private keys and creden
  for(const sample of ['gh'+'p_'+'A'.repeat(36),'AK'+'IA'+'A'.repeat(16),'person'+'@'+'private.test','-----BEGIN '+'PRIVATE KEY-----','api'+'_key = "'+'x'.repeat(32)+'"'])assert.ok(scanContent(sample).length);
  assert.deepEqual(scanContent('Fictional role: Planner. Read the schema.'),[]);
 });
+test('accepts the Claude co-author noreply address but not other vendor addresses',()=>{const {scanContent}=require('../scripts/check-publish.cjs');assert.deepEqual(scanContent('Co-Authored-By: Claude <noreply@anthropic.com>'),[]);assert(scanContent('Contact person'+String.fromCharCode(64)+'anthropic.com').includes('non-example email'));});
